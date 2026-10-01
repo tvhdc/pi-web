@@ -2301,7 +2301,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             }
             rows={1}
             style={{
-              flex: 1,
+              // flex-basis must stay auto: the shell is a column flex container, and
+              // `flex: 1` (basis 0%) let flex recompute the height, discarding the
+              // auto-grown height above and pinning the box to one line.
+              flexGrow: 1,
+              flexShrink: 0,
+              flexBasis: "auto",
               minWidth: 0,
               width: "100%",
               background: "none",
