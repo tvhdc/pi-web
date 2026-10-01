@@ -198,7 +198,7 @@ function SkillDetail({
           <span
             style={{ fontSize: "var(--text-meta)", color: "var(--text-muted)", fontWeight: 500 }}
           >
-            Source
+            {t("resources.source")}
           </span>
           <a
             href={skill.install.skillsShUrl}
@@ -235,7 +235,7 @@ function SkillDetail({
           <span
             style={{ fontSize: "var(--text-meta)", color: "var(--text-muted)", fontWeight: 500 }}
           >
-            Version
+            {t("resources.version")}
           </span>
           <div
             style={{
@@ -336,7 +336,7 @@ function SkillDetail({
         <span
           style={{ fontSize: "var(--text-meta)", color: "var(--text-muted)", fontWeight: 500 }}
         >
-          Name
+          {t("resources.name")}
         </span>
         <span
           style={{
@@ -353,7 +353,7 @@ function SkillDetail({
         <span
           style={{ fontSize: "var(--text-meta)", color: "var(--text-muted)", fontWeight: 500 }}
         >
-          Description
+          {t("resources.description")}
         </span>
         <span
           style={{ fontSize: "var(--text-chat)", color: "var(--text-muted)", lineHeight: "var(--leading-prose)" }}

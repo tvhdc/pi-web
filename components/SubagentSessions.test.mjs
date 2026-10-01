@@ -355,9 +355,10 @@ test("desktop widget card relocates pi-subagents TUI output into the right gutte
 test("running summary localizes in both locales", async () => {
   const { translateMessage } = await jiti.import("../lib/i18n/format.ts");
   const { getLocalePlugin } = await jiti.import("../lib/i18n/registry.ts");
-  const messages = { en: getLocalePlugin("en").messages, "zh-CN": getLocalePlugin("zh-CN").messages };
+  const messages = { en: getLocalePlugin("en").messages, "zh-CN": getLocalePlugin("zh-CN").messages, vi: getLocalePlugin("vi").messages };
   assert.equal(translateMessage("en", "subagents.runningSummary", messages, { count: 1 }), "1 running");
   assert.equal(translateMessage("zh-CN", "subagents.runningSummary", messages, { count: 1 }), "1 个运行中");
+  assert.equal(translateMessage("vi", "subagents.runningSummary", messages, { count: 1 }), "1 đang chạy");
 });
 
 test("tree source: finished trees auto-collapse into a compact summary", () => {

@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/types";
 const FILE_NAME = "ui-locale";
 
 export function parseUiLocale(value: unknown): Locale | null {
-  return value === "en" || value === "zh-CN" ? value : null;
+  return value === "en" || value === "zh-CN" || value === "vi" ? value : null;
 }
 
 export function readUiLocale(agentDir = getAgentDir()): Locale | null {

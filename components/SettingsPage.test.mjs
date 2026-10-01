@@ -9,6 +9,7 @@ const subagents = await readFile(new URL("./SubagentsConfig.tsx", import.meta.ur
 const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const messagesEn = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const messagesZh = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
+const messagesVi = await readFile(new URL("../lib/i18n/messages/vi.ts", import.meta.url), "utf8");
 
 test("AppShell exposes one unified settings entry", () => {
   assert.match(shell, /<SettingsPage/);
@@ -185,6 +186,7 @@ test("every subagent settings label has both locales and a style", () => {
   for (const key of keys) {
     assert.ok(messagesEn.includes(`"${key}":`), `en missing ${key}`);
     assert.ok(messagesZh.includes(`"${key}":`), `zh-CN missing ${key}`);
+    assert.ok(messagesVi.includes(`"${key}":`), `vi missing ${key}`);
   }
   const classes = [
     "settings-page-empty",
@@ -213,4 +215,5 @@ test("hide thinking and tools is a general preference owned by AppShell", () => 
   assert.match(shell, /onHideActivityToggle=\{onHideActivityToggle\}/);
   assert.match(messagesEn, /"settings\.hideActivity"/);
   assert.match(messagesZh, /"settings\.hideActivity"/);
+  assert.match(messagesVi, /"settings\.hideActivity"/);
 });

@@ -1927,7 +1927,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               }}
             >
               <div
-                title="Input history"
+                title={t("chat.inputHistory")}
                 style={{
                   height: 30,
                   padding: "0 10px",

@@ -7,6 +7,7 @@ const sidebar = await readFile(new URL("./CodexSidebar.tsx", import.meta.url), "
 const shell = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
 const en = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zh = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
+const vi = await readFile(new URL("../lib/i18n/messages/vi.ts", import.meta.url), "utf8");
 
 test("opens file tabs in diff mode and hides when git status is unavailable", () => {
   assert.match(panel, /if \(!visible \|\| !cwd \|\| !status\) return null;/);
@@ -33,9 +34,10 @@ test("AppShell reuses explorerRefreshKey and handleOpenFile for the changes pane
   assert.match(shell, /onOpenFile=\{handleOpenFile\}/);
 });
 
-test("en and zh-CN include the changes-panel copy", () => {
+test("en, zh-CN, and vi include the changes-panel copy", () => {
   for (const key of ["sidebar.changes", "sidebar.refreshChanges", "sidebar.moreChangedFiles"]) {
     assert.match(en, new RegExp(`"${key}":`));
     assert.match(zh, new RegExp(`"${key}":`));
+    assert.match(vi, new RegExp(`"${key}":`));
   }
 });

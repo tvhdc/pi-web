@@ -564,10 +564,11 @@ export function SessionBreadcrumb({
   items: BreadcrumbItem[];
   onSelect(id: string): void;
 }) {
+  const { t } = useI18n();
   if (items.length === 0) return null;
   return (
     <nav
-      aria-label="Subagent breadcrumb"
+      aria-label={t("subagents.breadcrumb")}
       style={{
         display: "flex",
         alignItems: "center",

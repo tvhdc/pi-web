@@ -324,9 +324,9 @@ function ProviderDetail({ name, provider, onChange, onRename, onDelete, onAddMod
 
       <Field label="API Key">
         <SecretTextInput value={provider.apiKey ?? ""} onChange={(v) => set("apiKey", v || undefined)}
-          placeholder="ENV_VAR_NAME, !shell-command, or literal key" mono />
+          placeholder={t("models.envKeyPlaceholder")} mono />
         <span style={{ fontSize: "var(--text-meta)", color: "var(--text-dim)", marginTop: 2 }}>
-          Prefix with <code style={{ fontFamily: "var(--font-mono)" }}>!</code> to run a shell command, or use an env var name
+          {t("models.envKeyHintBefore")} <code style={{ fontFamily: "var(--font-mono)" }}>!</code> {t("models.envKeyHintAfter")}
         </span>
       </Field>
 
@@ -1031,7 +1031,7 @@ function ModelDetail({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Field label="ID *"><TextInput value={model.id} onChange={(v) => set("id", v)} placeholder="model-id" mono /></Field>
-        <Field label="Name"><TextInput value={model.name ?? ""} onChange={(v) => set("name", v || undefined)} placeholder="Display name" /></Field>
+        <Field label="Name"><TextInput value={model.name ?? ""} onChange={(v) => set("name", v || undefined)} placeholder={t("models.displayNamePlaceholder")} /></Field>
       </div>
 
       <div style={{ padding: "2px 0" }}>

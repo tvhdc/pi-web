@@ -362,7 +362,7 @@ function AddPluginPanel({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         <label htmlFor="plugin-source" style={{ fontSize: "var(--text-meta)", fontWeight: 600, color: "var(--text-muted)" }}>
-          Source
+          {t("resources.source")}
         </label>
         <input
           id="plugin-source"
@@ -419,7 +419,7 @@ function AddPluginPanel({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         <div style={{ fontSize: "var(--text-meta)", fontWeight: 600, color: "var(--text-muted)" }}>
-          Examples
+          {t("resources.examples")}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {examples.map((example) => (
