@@ -371,7 +371,7 @@ export const enLocale: LocalePlugin = {
     "chat.agentPlaceholderMobile": "List queues · arrow interjects",
     "chat.runningDraftPlaceholder": "Enter queues · filled button interjects",
     "chat.runningDraftPlaceholderMobile": "List queues · arrow interjects",
-    "chat.messagePlaceholder": "Message… Type / for commands, @ for files",
+    "chat.messagePlaceholder": "Messages…",
     "chat.composerLabel": "Message",
     "chat.interjectAllPlaceholder": "Cmd/Ctrl+Enter interjects every queued message",
     "chat.interjectTitle": "Interject into the current turn. Enter still queues.",
