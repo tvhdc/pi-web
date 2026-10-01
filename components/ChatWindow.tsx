@@ -18,6 +18,7 @@ import { DesktopSubagentWidgetCard } from "./SubagentSessions";
 import { GoalPanel } from "./GoalPanel";
 import { DialogShell } from "./DialogShell";
 import { filterGoalStatuses, filterGoalWidgets, resolveGoalPanelModel } from "@/lib/goal-panel";
+import { formatWorkedIn } from "@/lib/hide-activity-preference";
 import { useI18n } from "@/hooks/useI18n";
 import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
@@ -65,6 +66,8 @@ interface Props {
    *  a non-active workspace can still ring. */
   soundEnabled?: boolean;
   tokenSpeedEnabled?: boolean;
+  /** Fold a finished turn's thinking + tool calls behind one "worked in MM:SS" row. */
+  hideActivity?: boolean;
   playDoneSound?: () => void;
   unlockAudio?: () => void;
   /** Read-only subagent transcript mode: external composer, no child runtime. */
@@ -218,6 +221,22 @@ function isGroupAnchor(message: AgentMessage): boolean {
   return message.role === "custom" && (message as CustomMessage).customType === "compaction";
 }
 
+// A finished turn runs from its anchoring prompt to the last recorded entry, and
+// entry timestamps are epoch milliseconds (parseEntryTimestamp), so the span is a
+// plain difference. Returns undefined when either end has no usable timestamp.
+function turnDurationSeconds(messages: AgentMessage[], startIdx: number, endIdx: number): number | undefined {
+  let first: number | undefined;
+  let last: number | undefined;
+  for (let i = startIdx; i < endIdx; i += 1) {
+    const ts = (messages[i] as AgentMessage & { timestamp?: number }).timestamp;
+    if (typeof ts !== "number" || !Number.isFinite(ts)) continue;
+    if (first === undefined || ts < first) first = ts;
+    if (last === undefined || ts > last) last = ts;
+  }
+  if (first === undefined || last === undefined || last < first) return undefined;
+  return Math.round((last - first) / 1000);
+}
+
 function withAssistantBlocks(
   message: AssistantMessage,
   content: AssistantContentBlock[],
@@ -228,11 +247,16 @@ function withAssistantBlocks(
   return next;
 }
 
-function ProcessDetailsGroup({ messageCount, toolCallCount, hasError = false, defaultExpanded = false, children, t }: { messageCount: number; toolCallCount: number; hasError?: boolean; defaultExpanded?: boolean; children: ReactNode; t: (key: string, params?: Record<string, string | number>) => string }) {
+function ProcessDetailsGroup({ messageCount, toolCallCount, hasError = false, defaultExpanded = false, workedIn, children, t }: { messageCount: number; toolCallCount: number; hasError?: boolean; defaultExpanded?: boolean; workedIn?: string; children: ReactNode; t: (key: string, params?: Record<string, string | number>) => string }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = hasError ? t("chat.processErrors") : t("chat.processCompleted");
-  const parts = [status, `${messageCount} ${t(messageCount === 1 ? "chat.message" : "chat.messages")}`];
-  if (toolCallCount > 0) parts.push(`${toolCallCount} ${t(toolCallCount === 1 ? "chat.toolCall" : "chat.toolCalls")}`);
+  const counts = [`${messageCount} ${t(messageCount === 1 ? "chat.message" : "chat.messages")}`];
+  if (toolCallCount > 0) counts.push(`${toolCallCount} ${t(toolCallCount === 1 ? "chat.toolCall" : "chat.toolCalls")}`);
+  // "Hide thinking and tools" keeps only the turn duration on the summary line;
+  // the message/tool counts are still one click away inside the disclosure.
+  const parts = workedIn
+    ? [t("chat.workedIn", { time: workedIn }), ...(hasError ? [status] : [])]
+    : [status, ...counts];
 
   return (
     <div style={{ marginBottom: 10 }}>
@@ -277,7 +301,7 @@ function useMessageRefs(count: number): RefObject<(HTMLDivElement | null)[]> {
   return refs;
 }
 
-export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, desktopAside, playDoneSound = () => {}, unlockAudio, subagentMode, subagentTreeVisible = false, tokenSpeedEnabled = true }: Props) {
+export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, desktopAside, playDoneSound = () => {}, unlockAudio, subagentMode, subagentTreeVisible = false, tokenSpeedEnabled = true, hideActivity = false }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
   const playDoneSoundRef = useRef(playDoneSound);
@@ -1086,6 +1110,11 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                   ? withAssistantBlocks(finalAssistant, finalSplit.answerBlocks)
                   : null;
 
+                // "Hide thinking and tools" measures the whole finished turn, so
+                // the label is computed once and reused by every fold in it.
+                const turnSeconds = turnDurationSeconds(messages, userIdx, endIdx);
+                const turnWorkedIn = hideActivity && turnSeconds !== undefined ? formatWorkedIn(turnSeconds) : undefined;
+
                 let processViews: ReactNode[] = [];
                 let processToolCount = 0;
                 let processRefIdx: number | undefined;
@@ -1100,7 +1129,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                       key={`process-group-${processKey}`}
                       ref={refIndex === undefined ? undefined : (el) => { messageRefs.current[refIndex] = el; }}
                     >
-                      <ProcessDetailsGroup messageCount={processViews.length} toolCallCount={processToolCount} hasError={hasError} t={t}>
+                      <ProcessDetailsGroup messageCount={processViews.length} toolCallCount={processToolCount} hasError={hasError} workedIn={turnWorkedIn} t={t}>
                         {processViews}
                       </ProcessDetailsGroup>
                     </div>,
@@ -1113,6 +1142,8 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
                 // Flush each process segment before its next thinking block so
                 // reasoning stays outside the fold without reordering the turn.
+                // With "Hide thinking and tools" there is nothing to flush for:
+                // the thinking blocks join the same fold as the tool calls.
                 for (let processIdx = userIdx + 1; processIdx <= finalAssistantIdx; processIdx++) {
                   const processMessage = messages[processIdx];
                   const messageKey = entryIds[processIdx] ?? processIdx;
@@ -1129,7 +1160,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                   for (const group of groups) {
                     const blockIndex = processMessage.content.indexOf(group.blocks[0]);
                     const key = `${messageKey}-${blockIndex}`;
-                    if (group.thinking) {
+                    if (group.thinking && !hideActivity) {
                       flushProcess();
                       const previousTimestamp = (messages[processIdx - 1] as AgentMessage & { timestamp?: number })?.timestamp;
                       const messageTimestamp = (processMessage as AssistantMessage & { timestamp?: number }).timestamp;

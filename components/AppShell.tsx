@@ -51,6 +51,7 @@ import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
 import { useTokenSpeedPreference } from "@/hooks/useTokenSpeedPreference";
+import { useHideActivityPreference } from "@/hooks/useHideActivityPreference";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
 import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
@@ -108,6 +109,7 @@ export function AppShell() {
   // is not mounted. ChatWindow receives the audio callbacks as props.
   const { soundEnabled, onSoundToggle, playDoneSound, unlockAudio, soundEnabledRef } = useAudio();
   const { tokenSpeedEnabled, onTokenSpeedToggle } = useTokenSpeedPreference();
+  const { hideActivity, onHideActivityToggle } = useHideActivityPreference();
   const [quoteSelectionEnabled, setQuoteSelectionEnabled] = useState(false);
   useEffect(() => {
     try {
@@ -2351,6 +2353,7 @@ export function AppShell() {
               ) : null}
               soundEnabled={soundEnabled}
               tokenSpeedEnabled={tokenSpeedEnabled}
+              hideActivity={hideActivity}
               playDoneSound={playDoneSound}
               unlockAudio={unlockAudio}
               subagentMode={childSelected && selectedSession ? {
@@ -2537,6 +2540,8 @@ export function AppShell() {
         onSoundToggle={onSoundToggle}
         tokenSpeedEnabled={tokenSpeedEnabled}
         onTokenSpeedToggle={onTokenSpeedToggle}
+        hideActivity={hideActivity}
+        onHideActivityToggle={onHideActivityToggle}
         quoteSelectionEnabled={quoteSelectionEnabled}
         onQuoteSelectionChange={handleQuoteSelectionChange}
         onClose={() => setSettingsOpen(false)}

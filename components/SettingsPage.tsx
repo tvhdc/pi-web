@@ -9,6 +9,7 @@ import {
   Bot,
   Brain,
   Cpu,
+  EyeOff,
   Gauge,
   GlobeLock,
   Image,
@@ -72,6 +73,8 @@ interface Props {
   onSoundToggle: () => void;
   tokenSpeedEnabled: boolean;
   onTokenSpeedToggle: () => void;
+  hideActivity: boolean;
+  onHideActivityToggle: () => void;
   quoteSelectionEnabled: boolean;
   onQuoteSelectionChange: (enabled: boolean) => void;
   onClose: () => void;
@@ -107,6 +110,8 @@ export function SettingsPage({
   onSoundToggle,
   tokenSpeedEnabled,
   onTokenSpeedToggle,
+  hideActivity,
+  onHideActivityToggle,
   quoteSelectionEnabled,
   onQuoteSelectionChange,
   onClose,
@@ -378,6 +383,12 @@ export function SettingsPage({
             setThinkingExpanded(next);
           }} title={t("settings.thinkingExpandedDefault")}>
             <span /><Brain size={15} aria-hidden="true" />
+          </button>
+        </section>
+        <section className="settings-form-section">
+          <div className="settings-form-label"><EyeOff size={16} aria-hidden="true" /><div><strong>{t("settings.hideActivity")}</strong><span>{t("settings.hideActivityDescription")}</span></div></div>
+          <button className="settings-switch" type="button" role="switch" aria-checked={hideActivity} onClick={onHideActivityToggle} title={t("settings.hideActivity")}>
+            <span /><EyeOff size={15} aria-hidden="true" />
           </button>
         </section>
         <section className="settings-form-section">

@@ -204,3 +204,13 @@ test("every subagent settings label has both locales and a style", () => {
     assert.match(styles, new RegExp(`\\.${className}[\\s,{:.]`), `globals.css does not style ${className}`);
   }
 });
+
+test("hide thinking and tools is a general preference owned by AppShell", () => {
+  assert.match(settings, /role="switch" aria-checked=\{hideActivity\}/);
+  assert.match(settings, /onClick=\{onHideActivityToggle\}/);
+  assert.match(shell, /useHideActivityPreference/);
+  assert.match(shell, /hideActivity=\{hideActivity\}/);
+  assert.match(shell, /onHideActivityToggle=\{onHideActivityToggle\}/);
+  assert.match(messagesEn, /"settings\.hideActivity"/);
+  assert.match(messagesZh, /"settings\.hideActivity"/);
+});

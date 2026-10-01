@@ -47,3 +47,13 @@ test("notice shelf animation does not lock toast height", () => {
   assert.doesNotMatch(block, /height:\s*60px/);
   assert.doesNotMatch(block, /max-height:\s*60px/);
 });
+
+test("hiding thinking and tools folds a finished turn behind one worked-in row", () => {
+  // Thinking joins the same fold as the tool calls only when the switch is on.
+  assert.match(source, /group\.thinking && !hideActivity/);
+  assert.match(source, /hideActivity && turnSeconds !== undefined \? formatWorkedIn\(turnSeconds\)/);
+  assert.match(source, /workedIn=\{turnWorkedIn\}/);
+  assert.match(source, /t\("chat\.workedIn", \{ time: workedIn \}\)/);
+  // The counts label survives for the default (switch off) path.
+  assert.match(source, /workedIn\s*\?\s*\[t\("chat\.workedIn"/);
+});

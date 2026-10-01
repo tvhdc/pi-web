@@ -32,6 +32,8 @@ export const enLocale: LocalePlugin = {
     "settings.completionSoundDescription": "Play a sound when an agent finishes working.",
     "settings.tokenSpeed": "Token speed",
     "settings.tokenSpeedDescription": "Show tokens per second while streaming and on the usage line.",
+    "settings.hideActivity": "Hide thinking and tools",
+    "settings.hideActivityDescription": "Fold a finished turn's thinking and tool calls into one \"worked in\" line.",
     "settings.cacheWarming": "Cache warming",
     "settings.cacheWarmingDescription": "Pi re-sends the conversation to keep the prompt cache warm, which lowers input cost per turn.",
     "settings.cacheWarmingOff": "Off",
@@ -327,6 +329,7 @@ export const enLocale: LocalePlugin = {
     "chat.planDeleted": "Deleted",
     "chat.processCompleted": "Processed",
     "chat.processErrors": "Processed with errors",
+    "chat.workedIn": "worked in {time}",
 
     "chat.message": "message",
     "chat.messages": "messages",
