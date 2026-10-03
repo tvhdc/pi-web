@@ -4982,6 +4982,7 @@ span.subagent-tree-disclosure { cursor: default; }
 .task-header-sidebar:hover { color: var(--text); background: var(--bg-hover); }
 .task-header-copy { min-width: 0; flex: 1; padding: 0 14px; display: flex; flex-direction: column; gap: 2px; }
 .task-header-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-ui); font-weight: var(--weight-semibold); }
+.task-header-copy h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-ui); font-weight: var(--weight-semibold); }
 .task-header-copy span { color: var(--text-dim); font-size: var(--text-meta); }
 .task-header-actions { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
 .task-header-actions > button,

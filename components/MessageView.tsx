@@ -6,6 +6,8 @@ import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
+import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
+import { formatRelativeTime } from "@/lib/i18n/format";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantAbortDetail, getAssistantErrorMessage, isAbortedAssistantMessage, isEmptyThinkingBlock } from "@/lib/message-display";
 import { parseUnifiedPatch, type SplitDiffCell } from "@/lib/patch";
@@ -173,6 +175,10 @@ interface Props {
   prevTimestamp?: number;
   sessionId?: string;
   defaultDetailsExpanded?: boolean;
+  /** Experimental UI: streamlined transcript (one model label per turn, stats on hover). */
+  experimentalUi?: boolean;
+  /** Experimental UI: first assistant message of its run — where the model label shows. */
+  showModelLabel?: boolean;
   /**
    * Files this turn wrote, derived by the caller from the whole turn's
    * successful write/edit tool calls. ChatWindow computes this because the
@@ -230,12 +236,12 @@ function haveSameRelevantToolResults(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent, showTimestamp, prevTimestamp, sessionId, defaultDetailsExpanded = false, writtenFiles, tokenSpeedEnabled = true }: Props) {
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent, showTimestamp, prevTimestamp, sessionId, defaultDetailsExpanded = false, writtenFiles, tokenSpeedEnabled = true, experimentalUi = false, showModelLabel = true }: Props) {
   if (message.role === "user") {
-    return <UserMessageView message={message as UserMessage} cwd={cwd} onOpenFile={onOpenFile} sessionId={sessionId} entryId={entryId} onFork={onFork} forking={forking} onNavigate={onNavigate} prevAssistantEntryId={prevAssistantEntryId} onEditContent={onEditContent} />;
+    return <UserMessageView message={message as UserMessage} cwd={cwd} onOpenFile={onOpenFile} sessionId={sessionId} entryId={entryId} onFork={onFork} forking={forking} onNavigate={onNavigate} prevAssistantEntryId={prevAssistantEntryId} onEditContent={onEditContent} experimentalUi={experimentalUi} />;
   }
   if (message.role === "assistant") {
-    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} defaultDetailsExpanded={defaultDetailsExpanded} writtenFiles={writtenFiles} tokenSpeedEnabled={tokenSpeedEnabled} />;
+    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} experimentalUi={experimentalUi} showModelLabel={showModelLabel} sessionId={sessionId} entryId={entryId} defaultDetailsExpanded={defaultDetailsExpanded} writtenFiles={writtenFiles} tokenSpeedEnabled={tokenSpeedEnabled} />;
   }
   if (message.role === "toolResult") {
     // Rendered inline under its toolCall — skip standalone rendering if paired
@@ -243,7 +249,7 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
   }
   if (message.role === "custom") {
     if ((message as CustomMessage).customType === "compaction") {
-      return <CompactionMessageView message={message as CustomMessage} />;
+      return <CompactionMessageView message={message as CustomMessage} experimentalUi={experimentalUi} />;
     }
     return <CustomMessageView message={message as CustomMessage} cwd={cwd} onOpenFile={onOpenFile} sessionId={sessionId} />;
   }
@@ -265,13 +271,15 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     && prev.prevAssistantEntryId === next.prevAssistantEntryId
     && prev.onEditContent === next.onEditContent
     && prev.showTimestamp === next.showTimestamp
+    && prev.experimentalUi === next.experimentalUi
+    && prev.showModelLabel === next.showModelLabel
     && prev.prevTimestamp === next.prevTimestamp
     && prev.sessionId === next.sessionId
     && prev.defaultDetailsExpanded === next.defaultDetailsExpanded
     && prev.tokenSpeedEnabled === next.tokenSpeedEnabled;
 });
 
-function UserMessageView({ message, cwd, onOpenFile, sessionId, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent }: {
+function UserMessageView({ message, cwd, onOpenFile, sessionId, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent, experimentalUi = false }: {
   message: UserMessage;
   cwd?: string;
   onOpenFile?: (filePath: string) => void;
@@ -282,8 +290,9 @@ function UserMessageView({ message, cwd, onOpenFile, sessionId, entryId, onFork,
   onNavigate?: (entryId: string) => void;
   prevAssistantEntryId?: string;
   onEditContent?: (message: UserMessage) => void;
+  experimentalUi?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -309,7 +318,7 @@ function UserMessageView({ message, cwd, onOpenFile, sessionId, entryId, onFork,
     ? commandText.slice(commandSeparator + 1)
     : "";
 
-  const time = formatTime(message.timestamp);
+  const time = experimentalUi && message.timestamp != null ? formatRelativeTime(new Date(message.timestamp), locale) : formatTime(message.timestamp);
   const canFork = !!entryId && !!onFork;
   const copyTarget = commandText ?? content;
   const editTarget = commandText ? replaceUserMessageText(message, commandText) : message;
@@ -516,6 +525,8 @@ function AssistantMessageView({
   cwd,
   onOpenFile,
   showTimestamp,
+  experimentalUi = false,
+  showModelLabel = true,
   prevTimestamp,
   sessionId,
   entryId,
@@ -530,6 +541,8 @@ function AssistantMessageView({
   cwd?: string;
   onOpenFile?: (filePath: string) => void;
   showTimestamp?: boolean;
+  experimentalUi?: boolean;
+  showModelLabel?: boolean;
   prevTimestamp?: number;
   sessionId?: string;
   entryId?: string;
@@ -537,8 +550,10 @@ function AssistantMessageView({
   writtenFiles?: WrittenFile[];
   tokenSpeedEnabled?: boolean;
 }) {
-  const { t } = useI18n();
-  const time = showTimestamp ? formatTime(message.timestamp) : null;
+  const { t, locale } = useI18n();
+  const time = showTimestamp
+    ? (experimentalUi && message.timestamp != null ? formatRelativeTime(new Date(message.timestamp), locale) : formatTime(message.timestamp))
+    : null;
   const blockItems = useMemo(() => (message.content ?? [])
     .map((block, originalIndex) => ({ block, originalIndex }))
     .filter(({ block }) => !isEmptyThinkingBlock(block, { isStreaming })), [message.content, isStreaming]);
@@ -672,7 +687,8 @@ function AssistantMessageView({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Model label */}
+      {/* Model label — experimental UI shows it once per run */}
+      {(!experimentalUi || showModelLabel || (isStreaming && (Math.round(estimatedTokens) > 0 || (tokenSpeedEnabled && tps !== null)))) && (
       <div
         style={{
           fontSize: "var(--text-meta)",
@@ -686,7 +702,7 @@ function AssistantMessageView({
           gap: 8,
         }}
       >
-        {message.provider && (
+        {(!experimentalUi || showModelLabel) && message.provider && (
           <span style={{ letterSpacing: "0.02em" }}>{modelNames?.[`${message.provider}:${message.model}`] ?? modelNames?.[message.model] ?? message.model}</span>
         )}
         {isStreaming && (() => {
@@ -707,6 +723,7 @@ function AssistantMessageView({
           );
         })()}
       </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {blockItems.map(({ block, originalIndex }) => (
@@ -760,8 +777,8 @@ function AssistantMessageView({
 
       <div style={{
         display: "flex", alignItems: "center", gap: 8, marginTop: 4,
-      }}>
-        {message.usage && !isStreaming && (
+      }} title={experimentalUi && message.usage && !isStreaming ? formatUsage(message.usage, tokenSpeedEnabled ? finalTps : null) : undefined}>
+        {message.usage && !isStreaming && !experimentalUi && (
           <div style={{ fontSize: "var(--text-meta)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }} title={tokenSpeedEnabled && finalTps != null ? t("i18n.billedTokenSpeed") : undefined}>
             {formatUsage(message.usage, tokenSpeedEnabled ? finalTps : null)}
           </div>
@@ -834,6 +851,7 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex,
   defaultExpanded?: boolean;
 }) {
   const { t } = useI18n();
+  const { experimentalUi } = useExperimentalUiPreference();
   const [expanded, setExpanded] = useState(() => defaultExpanded || isThinkingExpandedByDefault());
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -887,7 +905,7 @@ export function ThinkingBlock({ block, duration, sessionId, entryId, blockIndex,
           textAlign: "left",
         }}
       >
-         <span>{t("i18n.thinking")}</span>
+         {experimentalUi && (<ChevronDown size={12} aria-hidden="true" style={{ transform: expanded ? "none" : "rotate(-90deg)", transition: "transform 0.15s", flexShrink: 0 }} />)}<span>{t("i18n.thinking")}</span>
         {duration !== undefined && (
           <span style={{ marginLeft: "auto", fontSize: "var(--text-meta)", color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>{duration}s</span>
         )}
@@ -1333,11 +1351,11 @@ function PairedResult({ text, isEmpty, isError }: {
   );
 }
 
-function CompactionMessageView({ message }: { message: CustomMessage }) {
-  const { t } = useI18n();
+function CompactionMessageView({ message, experimentalUi = false }: { message: CustomMessage; experimentalUi?: boolean }) {
+  const { t, locale } = useI18n();
   const summary = getMessageText(message.content);
   const parsedSummary = useMemo(() => parseCompactionSummary(summary), [summary]);
-  const time = formatTime(message.timestamp);
+  const time = experimentalUi && message.timestamp != null ? formatRelativeTime(new Date(message.timestamp), locale) : formatTime(message.timestamp);
 
   return (
     <div style={{ marginBottom: 16 }}>

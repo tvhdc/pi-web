@@ -145,6 +145,8 @@ export function DesktopWidgetCards({ widgets }: { widgets: ExtensionWidgetItem[]
                   "--context-percent": `${percent}%`,
                   "--context-tone": meterTone(meter.remain, meter.size),
                 } as CSSProperties}
+                role="progressbar"
+                aria-valuetext={`${meter.remain} / ${meter.size}`}
                 aria-label={`${meter.name} ${meter.remain} / ${meter.size}`}
               >
                 <span />

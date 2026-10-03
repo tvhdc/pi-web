@@ -64,7 +64,7 @@ export function TaskHeader({
         </button>
       ) : null}
       <div className="task-header-copy">
-        <strong>{title}</strong>
+        <h1>{title}</h1>
         <span>{running ? t("task.running") : t("task.ready")}{modified ? ` · ${formatRelativeTime(modified, locale)}` : ""}</span>
       </div>
       <div className="task-header-actions">

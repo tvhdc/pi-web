@@ -52,6 +52,7 @@ import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
 import { useTokenSpeedPreference } from "@/hooks/useTokenSpeedPreference";
 import { useHideActivityPreference } from "@/hooks/useHideActivityPreference";
+import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
 import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
@@ -110,6 +111,7 @@ export function AppShell() {
   const { soundEnabled, onSoundToggle, playDoneSound, unlockAudio, soundEnabledRef } = useAudio();
   const { tokenSpeedEnabled, onTokenSpeedToggle } = useTokenSpeedPreference();
   const { hideActivity, onHideActivityToggle } = useHideActivityPreference();
+  const { experimentalUi, onExperimentalUiToggle } = useExperimentalUiPreference();
   const [quoteSelectionEnabled, setQuoteSelectionEnabled] = useState(false);
   useEffect(() => {
     try {
@@ -2542,6 +2544,8 @@ export function AppShell() {
         onTokenSpeedToggle={onTokenSpeedToggle}
         hideActivity={hideActivity}
         onHideActivityToggle={onHideActivityToggle}
+        experimentalUi={experimentalUi}
+        onExperimentalUiToggle={onExperimentalUiToggle}
         quoteSelectionEnabled={quoteSelectionEnabled}
         onQuoteSelectionChange={handleQuoteSelectionChange}
         onClose={() => setSettingsOpen(false)}

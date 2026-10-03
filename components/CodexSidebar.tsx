@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { Archive, ArrowDown, ArrowUp, ChevronRight, Ellipsis, Folder, FolderPlus, LoaderCircle, MessageSquare, PanelLeft, Pencil, Pin, PinOff, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
+import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { readArchivedSessionIds, writeArchivedSessionIds } from "@/lib/archived-sessions";
 import { filterProjectSessions, matchesSidebarQuery, sidebarProjectName, sidebarSessionTitle } from "@/lib/codex-sidebar-search";
@@ -764,12 +765,12 @@ export function CodexSidebar({
         {recentOpen && (
         <div role="list">
           {loading && (
-            <div className="codex-sidebar-skeleton" aria-busy="true" aria-label={t("sidebar.loading")}>
+            <div className="codex-sidebar-skeleton" role="listitem" aria-busy="true" aria-label={t("sidebar.loading")}>
               <i /><i /><i />
             </div>
           )}
           {filterQuery && recentSessions.length === 0 && !loading && (
-            <div className="codex-sidebar-empty">{t("sidebar.noMatches")}</div>
+            <div className="codex-sidebar-empty" role="listitem">{t("sidebar.noMatches")}</div>
           )}
           {recentSessions.map(({ session, projectLabel }) => (
             <SessionRow
@@ -803,13 +804,13 @@ export function CodexSidebar({
         <div className="codex-sidebar-workspace-title">{t("sidebar.projects")}</div>
         <div className="codex-sidebar-project-list" role="list">
           {loading && (
-            <div className="codex-sidebar-skeleton" aria-busy="true" aria-label={t("sidebar.loading")}>
+            <div className="codex-sidebar-skeleton" role="listitem" aria-busy="true" aria-label={t("sidebar.loading")}>
               <i /><i /><i /><i /><i />
             </div>
           )}
-          {error && <div className="codex-sidebar-error">{error}</div>}
+          {error && <div className="codex-sidebar-error" role="listitem">{error}</div>}
           {!loading && !error && visibleProjects.length === 0 && (
-            <div className="codex-sidebar-empty">{t("sidebar.noProjects")}</div>
+            <div className="codex-sidebar-empty" role="listitem">{t("sidebar.noProjects")}</div>
           )}
           {visibleProjects.map((project) => {
             const matchingSessions = filterProjectSessions(project, filterQuery) ?? [];
@@ -1097,6 +1098,7 @@ function SessionRow({ session, selected, running, unread, variant = "nested", pr
   onArchive: () => void;
 }) {
   const { t } = useI18n();
+  const { experimentalUi } = useExperimentalUiPreference();
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1179,7 +1181,7 @@ function SessionRow({ session, selected, running, unread, variant = "nested", pr
 
   return (
     <>
-    <div className={`codex-session-row${isRecent ? " codex-recent-session-row" : ""}`} data-selected={selected} onContextMenu={renaming ? undefined : openContextMenu}>
+    <div className={`codex-session-row${isRecent ? " codex-recent-session-row" : ""}`} role={isRecent ? "listitem" : undefined} data-selected={selected} onContextMenu={renaming ? undefined : openContextMenu}>
       {renaming ? (
       <div className="codex-session-main" title={rowTitle}>
         {running ? (
@@ -1220,7 +1222,7 @@ function SessionRow({ session, selected, running, unread, variant = "nested", pr
             <span className={`codex-session-title${isRecent ? " codex-recent-session-title" : ""}`}>{title}</span>
       </button>
       )}
-      {isRecent && relativeTime ? <span className="codex-recent-session-time">{relativeTime}</span> : null}
+      {isRecent && relativeTime ? <span className="codex-recent-session-time" style={experimentalUi ? { color: "color-mix(in srgb, var(--text-dim) 60%, var(--text))" } : undefined}>{relativeTime}</span> : null}
       {!session.transient && (
         <div className="codex-session-menu-wrap">
           <IconButton ref={menuButtonRef} label={t("sidebar.sessionActions")} onClick={(event) => {

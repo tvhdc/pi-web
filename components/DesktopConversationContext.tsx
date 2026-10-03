@@ -34,7 +34,7 @@ export function DesktopConversationContext({ model, onOpenDetails }: Props) {
           <strong>{formatCompact(model.usedTokens ?? 0)} <small>/ {formatCompact(model.contextWindow)}</small></strong>
           <span>{t("context.available", { tokens: formatCompact(model.availableTokens) })}</span>
         </div>
-        <div className="desktop-context-progress" style={progressStyle} aria-label={`${model.percent ?? 0}% ${t("context.used")}`}>
+        <div className="desktop-context-progress" style={progressStyle} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(model.percent ?? 0)} aria-label={`${Math.round(model.percent ?? 0)}% ${t("context.used")}`}>
           <span />
         </div>
       </section>

@@ -23,6 +23,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
 import type { SessionStatsInfo } from "@/lib/pi-types";
 import type { AppUpdateResponse } from "@/lib/api-types";
 import {
@@ -79,10 +80,15 @@ interface Props {
   subagentTreeVisible?: boolean;
 }
 
-function phaseLabel(phase: AgentPhase, t: (key: string, params?: Record<string, string | number>) => string): string | null {
+function phaseLabel(phase: AgentPhase, t: (key: string, params?: Record<string, string | number>) => string, experimental = false): string | null {
   if (phase?.kind === "running_tools") {
     const latest = phase.tools[phase.tools.length - 1];
     if (latest?.progress) {
+      if (experimental) {
+        // De-duplicate: progress already reads like "Running agent-browser --json …".
+        const progress = latest.progress.replace(/^\s*Running\s+/i, "").trim();
+        return progress ? `${t("task.running")} ${latest.name} · ${progress}` : t("chat.runningNamedTool", { name: latest.name });
+      }
       return `${t("chat.runningNamedTool", { name: latest.name })} ${latest.progress}`;
     }
     const names = phase.tools.map((t) => t.name);
@@ -303,6 +309,7 @@ function useMessageRefs(count: number): RefObject<(HTMLDivElement | null)[]> {
 
 export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, desktopAside, playDoneSound = () => {}, unlockAudio, subagentMode, subagentTreeVisible = false, tokenSpeedEnabled = true, hideActivity = false }: Props) {
   const { t } = useI18n();
+  const { experimentalUi } = useExperimentalUiPreference();
   const isMobile = useIsMobile();
   const playDoneSoundRef = useRef(playDoneSound);
   playDoneSoundRef.current = playDoneSound;
@@ -1027,6 +1034,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 const currentRefIdx = visibleRefIndexByMessage.get(idx);
                 const keyPrefix = options.keyPrefix ?? "message";
                 let showTimestamp = false;
+                let isRunLast = false;
                 if (msg.role === "assistant") {
                   showTimestamp = true;
                   for (let j = idx + 1; j < messages.length; j++) {
@@ -1034,12 +1042,18 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                     if (r === "user") break;
                     if (r === "assistant") { showTimestamp = false; break; }
                   }
+                  isRunLast = showTimestamp;
                   // Hide on the currently-streaming tail (the streaming bubble owns the live timestamp)
                   if (showTimestamp && streamState.isStreaming && idx === messages.length - 1) {
                     showTimestamp = false;
                   }
                 }
                 if (options.showTimestamp !== undefined) showTimestamp = options.showTimestamp;
+                // Experimental UI: exactly one model label per run — the last
+                // assistant message of the run (same grouping as the timestamp),
+                // or the live streaming tail while the turn is still running.
+                const showModelLabel = msg.role === "assistant"
+                  && (isRunLast || (streamState.isStreaming && idx === messages.length - 1));
                 const view = (
                   <MessageView
                     key={`${keyPrefix}-view-${idx}`}
@@ -1055,6 +1069,8 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                     prevAssistantEntryId={sessionBusy ? undefined : prevAssistantEntryId}
                     onEditContent={subagentMode === undefined ? handleEditContent : undefined}
                     showTimestamp={showTimestamp}
+                    experimentalUi={experimentalUi}
+                    showModelLabel={showModelLabel}
                     prevTimestamp={idx > 0 ? (messages[idx - 1] as AgentMessage & { timestamp?: number }).timestamp : undefined}
                     sessionId={session?.id ?? sessionIdRef.current ?? undefined}
                     defaultDetailsExpanded={options.defaultDetailsExpanded}
@@ -1234,7 +1250,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             )}
             {agentRunning && !hasStreamingContent && agentPhase && agentPhase.kind !== "stopping" && (
               <div className="break-words py-2 text-[13px] text-text-muted">
-                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
+                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t, experimentalUi)}</span>
               </div>
             )}
 
@@ -1270,6 +1286,17 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             </div>
           </div>
         </div>
+        {experimentalUi && !isMobile ? (
+          <Suspense fallback={null}>
+            <ChatMinimap
+              messages={messages}
+              streamingMessage={streamState.streamingMessage}
+              scrollContainer={scrollContainerRef}
+              messageRefs={messageRefs}
+              onRevealHistory={revealHistoryForMinimap}
+            />
+          </Suspense>
+        ) : null}
       </div>
 
       <div className="relative">
@@ -1379,7 +1406,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       )}
         <ExtensionStatusBar statuses={visibleStatuses} widgets={footerWidgets} gutterDuplicate={gutterWidgets.length > 0} />
         </div>
-        {isMobile ? null : (
+        {!experimentalUi && (isMobile ? null : (
           <Suspense fallback={null}>
           <ChatMinimap
             messages={messages}
@@ -1389,7 +1416,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             onRevealHistory={revealHistoryForMinimap}
           />
           </Suspense>
-        )}
+        ))}
         </>
         </div>
         {contextGutter}
