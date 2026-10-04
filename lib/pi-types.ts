@@ -53,6 +53,8 @@ export interface SessionStatsInfo {
     total: number;
   };
   cost: number;
+  /** Chat-wide cost (all responses + tool/event steps), when known. */
+  totalCost?: number;
   contextUsage?: ContextUsage;
   /** Estimated active time across all entries in the session file. */
   totalActiveMs?: number;

@@ -331,11 +331,15 @@ test("keeps the assistant usage line on a single row with ellipsis", () => {
   const html = renderMessage({
     role: "assistant",
     content: [{ type: "text", text: "Done" }],
-    usage: { input: 3196, output: 314, cacheRead: 220288, cacheWrite: 0, cost: { total: 0 } },
+    usage: { input: 3196, output: 314, cacheRead: 220288, cacheWrite: 0, cost: { total: 0.0042 } },
     timestamp: Date.now(),
   });
 
-  assert.match(html, /font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0/);
+  // The token body ellipsizes on narrow screens…
+  assert.match(html, /overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0/);
+  // …but the dollar amount never gets clipped (flex-shrink:0).
+  assert.match(html, /flex-shrink:0/);
+  assert.match(html, /\$0\.0042/);
 });
 
 test("collapsed deferred tool result omits its body and keeps the header", () => {

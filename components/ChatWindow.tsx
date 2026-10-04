@@ -1017,7 +1017,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 if (idx === lastUserIdx) { (lastUserMsgRef as { current: HTMLDivElement | null }).current = el; }
               };
 
-              const renderMessage = (idx: number, options: { attachRef?: boolean; keyPrefix?: string; messageOverride?: AgentMessage; showTimestamp?: boolean; defaultDetailsExpanded?: boolean; writtenFiles?: WrittenFile[] } = {}): ReactNode => {
+              const renderMessage = (idx: number, options: { attachRef?: boolean; keyPrefix?: string; messageOverride?: AgentMessage; showTimestamp?: boolean; defaultDetailsExpanded?: boolean; writtenFiles?: WrittenFile[]; totalCost?: number } = {}): ReactNode => {
                 const msg = options.messageOverride ?? messages[idx];
                 const prevAssistantEntryId =
                   msg.role === "user" && idx > 0 && messages[idx - 1].role === "assistant"
@@ -1055,6 +1055,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                     prevAssistantEntryId={sessionBusy ? undefined : prevAssistantEntryId}
                     onEditContent={subagentMode === undefined ? handleEditContent : undefined}
                     showTimestamp={showTimestamp}
+                    totalCost={options.totalCost}
                     prevTimestamp={idx > 0 ? (messages[idx - 1] as AgentMessage & { timestamp?: number }).timestamp : undefined}
                     sessionId={session?.id ?? sessionIdRef.current ?? undefined}
                     defaultDetailsExpanded={options.defaultDetailsExpanded}
@@ -1203,7 +1204,14 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                     }
                   }
                   const writtenFiles = extractTurnWrittenFiles(turnContent, toolResultsMap, messageCwd);
-                  rendered.push(renderMessage(finalAssistantIdx, { messageOverride: finalAnswerMessage, writtenFiles }));
+                  // Chat-final = no later assistant answer follows this turn
+                  // (the very last assistant may be tool-only with no text).
+                  const isChatFinalResponse = !messages.slice(endIdx).some((m) => m.role === "assistant" && hasFinalAssistantAnswer(m));
+                  rendered.push(renderMessage(finalAssistantIdx, {
+                    messageOverride: finalAnswerMessage,
+                    writtenFiles,
+                    totalCost: isChatFinalResponse ? (sessionStats?.totalCost ?? undefined) : undefined,
+                  }));
                 }
                 for (let renderIdx = finalAssistantIdx + 1; renderIdx < endIdx; renderIdx++) {
                   rendered.push(renderMessage(renderIdx));

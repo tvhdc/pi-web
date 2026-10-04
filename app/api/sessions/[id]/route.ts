@@ -65,6 +65,31 @@ function collectSubagentDescendants(sessions: SessionInfo[], rootId: string): Se
   return found;
 }
 
+// Chat-wide cost (sum of every assistant usage in the session file). The
+// window reader only parses the tail of large sessions, so scan the whole
+// file once and cache per (mtime, size) to keep GETs cheap.
+const totalCostCache = new Map<string, { mtimeMs: number; size: number; total: number }>();
+
+function readSessionTotalCost(filePath: string): number | undefined {
+  if (!filePath) return undefined;
+  try {
+    const st = statSync(filePath);
+    const hit = totalCostCache.get(filePath);
+    if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.total;
+    let total = 0;
+    for (const line of readFileSync(filePath, "utf8").split("\n")) {
+      if (!line.includes('"usage"')) continue;
+      try {
+        const parsed = JSON.parse(line) as { type?: string; message?: { role?: string; usage?: { cost?: { total?: number } } } };
+        const usage = parsed.type === "message" && parsed.message?.role === "assistant" ? parsed.message.usage : undefined;
+        if (typeof usage?.cost?.total === "number") total += usage.cost.total;
+      } catch { /* skip malformed line */ }
+    }
+    totalCostCache.set(filePath, { mtimeMs: st.mtimeMs, size: st.size, total });
+    return total;
+  } catch { return undefined; }
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -124,6 +149,7 @@ export async function GET(
         tree: window.tree,
         context: window.context,
         totalActiveMs: window.totalActiveMs,
+        totalCost: readSessionTotalCost(filePath),
         hasMore: window.hasMore,
       });
     }
@@ -135,6 +161,11 @@ export async function GET(
     const leafId = leafIdParam || sm.getLeafId();
     const full = buildSessionContext(entries as never, leafId, defer);
     const { context, hasMore } = sliceSessionContext(full, { limit, before });
+    const liveTotalCost = full.messages.reduce<number>((sum, m) => {
+      if (m.role !== "assistant") return sum;
+      const u = (m as { usage?: { cost?: { total?: number } } }).usage;
+      return sum + (typeof u?.cost?.total === "number" ? u.cost.total : 0);
+    }, 0);
     const header = sm.getHeader();
     let modified = header?.timestamp ?? new Date().toISOString();
     try { modified = statSync(filePath).mtime.toISOString(); } catch { /* use header timestamp */ }
@@ -168,6 +199,7 @@ export async function GET(
       tree: projectTreeForResponse(sm.getTree()),
       context,
       totalActiveMs: computeSessionTotalActiveMs(entries),
+      totalCost: liveTotalCost,
       hasMore,
     });
   } catch (error) {

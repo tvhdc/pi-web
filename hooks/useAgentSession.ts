@@ -45,6 +45,8 @@ export interface SessionData {
   sessionId: string;
   filePath: string;
   totalActiveMs: number;
+  /** Chat-wide cost (USD) computed server-side from the whole session file. */
+  totalCost?: number;
   tree: SessionTreeNode[];
   leafId: string | null;
   context: {
@@ -499,7 +501,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
   const sessionStats = useMemo(() => {
     if (sessionStatsOverride) {
-      return { ...sessionStatsOverride, totalActiveMs: data?.totalActiveMs };
+      return { ...sessionStatsOverride, totalActiveMs: data?.totalActiveMs, totalCost: sessionStatsOverride.totalCost ?? sessionStatsOverride.cost };
     }
     const tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
     let cost = 0;
@@ -534,10 +536,11 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       totalMessages: messages.length,
       tokens,
       cost,
+      totalCost: data?.totalCost ?? cost,
       totalActiveMs: data?.totalActiveMs,
       ...(contextUsage ? { contextUsage } : {}),
     } satisfies SessionStatsInfo;
-  }, [messages, sessionStatsOverride, contextUsage, data?.filePath, data?.totalActiveMs, session?.id, session?.name]);
+  }, [messages, sessionStatsOverride, contextUsage, data?.filePath, data?.totalActiveMs, data?.totalCost, session?.id, session?.name]);
 
   const loadSession = useCallback(async (sid: string, showLoading = false, includeState = false) => {
     const gen = ++loadSessionGenRef.current;

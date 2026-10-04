@@ -6,6 +6,7 @@ import { MarkdownBody } from "./MarkdownBody";
 import { ImagePreview } from "./ImagePreview";
 import { copyText } from "@/lib/clipboard";
 import { useI18n } from "@/hooks/useI18n";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { parseCompactionSummary } from "@/lib/compaction-summary";
 import { getAssistantAbortDetail, getAssistantErrorMessage, isAbortedAssistantMessage, isEmptyThinkingBlock } from "@/lib/message-display";
 import { parseUnifiedPatch, type SplitDiffCell } from "@/lib/patch";
@@ -182,6 +183,8 @@ interface Props {
   writtenFiles?: WrittenFile[];
   /** When false, hide every t/s figure. The streaming ↓ count stays visible. */
   tokenSpeedEnabled?: boolean;
+  /** Chat-wide cumulative cost (USD) shown instead of this response's own cost. */
+  totalCost?: number;
 }
 
 function formatTime(ts?: number): string | null {
@@ -230,12 +233,12 @@ function haveSameRelevantToolResults(
   return true;
 }
 
-export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent, showTimestamp, prevTimestamp, sessionId, defaultDetailsExpanded = false, writtenFiles, tokenSpeedEnabled = true }: Props) {
+export const MessageView = memo(function MessageView({ message, isStreaming, toolResults, modelNames, cwd, onOpenFile, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent, showTimestamp, prevTimestamp, sessionId, defaultDetailsExpanded = false, writtenFiles, tokenSpeedEnabled = true, totalCost }: Props) {
   if (message.role === "user") {
     return <UserMessageView message={message as UserMessage} cwd={cwd} onOpenFile={onOpenFile} sessionId={sessionId} entryId={entryId} onFork={onFork} forking={forking} onNavigate={onNavigate} prevAssistantEntryId={prevAssistantEntryId} onEditContent={onEditContent} />;
   }
   if (message.role === "assistant") {
-    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} defaultDetailsExpanded={defaultDetailsExpanded} writtenFiles={writtenFiles} tokenSpeedEnabled={tokenSpeedEnabled} />;
+    return <AssistantMessageView message={message as AssistantMessage} isStreaming={isStreaming} toolResults={toolResults} modelNames={modelNames} cwd={cwd} onOpenFile={onOpenFile} showTimestamp={showTimestamp} prevTimestamp={prevTimestamp} sessionId={sessionId} entryId={entryId} defaultDetailsExpanded={defaultDetailsExpanded} writtenFiles={writtenFiles} tokenSpeedEnabled={tokenSpeedEnabled} totalCost={totalCost} />;
   }
   if (message.role === "toolResult") {
     // Rendered inline under its toolCall — skip standalone rendering if paired
@@ -268,7 +271,8 @@ export const MessageView = memo(function MessageView({ message, isStreaming, too
     && prev.prevTimestamp === next.prevTimestamp
     && prev.sessionId === next.sessionId
     && prev.defaultDetailsExpanded === next.defaultDetailsExpanded
-    && prev.tokenSpeedEnabled === next.tokenSpeedEnabled;
+    && prev.tokenSpeedEnabled === next.tokenSpeedEnabled
+    && prev.totalCost === next.totalCost;
 });
 
 function UserMessageView({ message, cwd, onOpenFile, sessionId, entryId, onFork, forking, onNavigate, prevAssistantEntryId, onEditContent }: {
@@ -522,6 +526,7 @@ function AssistantMessageView({
   defaultDetailsExpanded,
   writtenFiles,
   tokenSpeedEnabled = true,
+  totalCost,
 }: {
   message: AssistantMessage;
   isStreaming?: boolean;
@@ -536,8 +541,10 @@ function AssistantMessageView({
   defaultDetailsExpanded: boolean;
   writtenFiles?: WrittenFile[];
   tokenSpeedEnabled?: boolean;
+  totalCost?: number;
 }) {
   const { t } = useI18n();
+  const isMobile = useIsMobile();
   const time = showTimestamp ? formatTime(message.timestamp) : null;
   const blockItems = useMemo(() => (message.content ?? [])
     .map((block, originalIndex) => ({ block, originalIndex }))
@@ -762,8 +769,9 @@ function AssistantMessageView({
         display: "flex", alignItems: "center", gap: 8, marginTop: 4,
       }}>
         {message.usage && !isStreaming && (
-          <div style={{ fontSize: "var(--text-meta)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }} title={tokenSpeedEnabled && finalTps != null ? t("i18n.billedTokenSpeed") : undefined}>
-            {formatUsage(message.usage, tokenSpeedEnabled ? finalTps : null)}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, fontSize: "var(--text-meta)", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", minWidth: 0 }} title={tokenSpeedEnabled && finalTps != null ? t("i18n.billedTokenSpeed") : undefined}>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{formatUsage(message.usage, tokenSpeedEnabled ? finalTps : null, isMobile, totalCost).body}</span>
+            {(() => { const c = formatUsage(message.usage, tokenSpeedEnabled ? finalTps : null, isMobile, totalCost).cost; return c ? <span style={{ flexShrink: 0 }}>{`· ${c}`}</span> : null; })()}
           </div>
         )}
         {textContent && !isStreaming && (
@@ -1644,15 +1652,18 @@ function formatUsage(usage: {
   cacheRead: number;
   cacheWrite: number;
   cost: { total: number };
-}, tps?: number | null): string {
+}, tps?: number | null, compact = false, totalCost?: number | null): { body: string; cost: string | null } {
   const parts = [];
-  if (usage.input) parts.push(`${usage.input.toLocaleString()} in`);
-  if (usage.output) parts.push(`${usage.output.toLocaleString()} out`);
-  if (usage.cacheRead) parts.push(`${usage.cacheRead.toLocaleString()} cache R`);
-  if (usage.cacheWrite) parts.push(`${usage.cacheWrite.toLocaleString()} cache W`);
+  if (usage.input) parts.push(`${usage.input.toLocaleString()}${compact ? "i" : " in"}`);
+  if (usage.output) parts.push(`${usage.output.toLocaleString()}${compact ? "o" : " out"}`);
+  if (usage.cacheRead) parts.push(`${usage.cacheRead.toLocaleString()}${compact ? "cR" : " cache R"}`);
+  if (usage.cacheWrite) parts.push(`${usage.cacheWrite.toLocaleString()}${compact ? "cW" : " cache W"}`);
   if (tps != null) parts.push(`${tps.toFixed(1)} t/s`);
-  if (usage.cost?.total) parts.push(`$${usage.cost.total.toFixed(4)}`);
-  return parts.join(" · ");
+  const cost = totalCost != null && totalCost > 0 ? totalCost : usage.cost?.total;
+  return {
+    body: parts.join(" · "),
+    cost: cost ? `$${cost.toFixed(4)}` : null,
+  };
 }
 
 function BashExecutionView({ message, sessionId }: { message: BashExecutionMessage; sessionId?: string }) {
