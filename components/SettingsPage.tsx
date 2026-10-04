@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   Archive,
@@ -10,6 +10,7 @@ import {
   Brain,
   Cpu,
   EyeOff,
+  FileText,
   Gauge,
   GlobeLock,
   Image,
@@ -392,6 +393,10 @@ export function SettingsPage({
           </button>
         </section>
         <section className="settings-form-section">
+          <div className="settings-form-label"><FileText size={16} aria-hidden="true" /><div><strong>{t("settings.agentStyles")}</strong><span>{t("settings.agentStylesDescription")}</span></div></div>
+          <AgentStylesSection />
+        </section>
+        <section className="settings-form-section">
           <div className="settings-form-label"><ThermometerSun size={16} aria-hidden="true" /><div><strong>{t("settings.cacheWarming")}</strong><span>{t("settings.cacheWarmingDescription")}</span></div></div>
           <div className="settings-segmented" role="radiogroup" aria-label={t("settings.cacheWarming")}>
             {CACHE_WARMING_OPTIONS.map((mode) => (
@@ -594,5 +599,127 @@ export function SettingsPage({
       )}
     </div>,
     document.body,
+  );
+}
+
+interface AgentStyleEntry {
+  id: string;
+  name: string;
+  content: string;
+}
+
+/** Settings CRUD for named AGENTS.md styles (stored in the agent dir). */
+function AgentStylesSection() {
+  const { t } = useI18n();
+  const [styles, setStyles] = useState<AgentStyleEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | "new" | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formContent, setFormContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const refresh = useCallback(() => {
+    fetch("/api/agent-styles")
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<{ styles: AgentStyleEntry[] }>;
+      })
+      .then((data) => setStyles(data.styles))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const notifyChanged = () => window.dispatchEvent(new Event("pi-agent-styles-changed"));
+
+  const startCreate = () => { setEditingId("new"); setFormName(""); setFormContent(""); };
+  const startEdit = (style: AgentStyleEntry) => { setEditingId(style.id); setFormName(style.name); setFormContent(style.content); };
+
+  const handleSave = async () => {
+    if (saving || editingId === null) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/agent-styles", {
+        method: editingId === "new" ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingId === "new"
+          ? { name: formName, content: formContent }
+          : { id: editingId, name: formName, content: formContent }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? `HTTP ${response.status}`);
+      }
+      setEditingId(null);
+      refresh();
+      notifyChanged();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setError(null);
+    try {
+      const response = await fetch("/api/agent-styles", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error ?? `HTTP ${response.status}`);
+      }
+      if (editingId === id) setEditingId(null);
+      refresh();
+      notifyChanged();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const fieldStyle: CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    fontSize: "var(--text-meta)",
+    fontFamily: "var(--font-mono)",
+    padding: "6px 8px",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    outline: "none",
+    background: "var(--bg)",
+    color: "var(--text)",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {(styles ?? []).length === 0 && editingId === null && (
+        <div style={{ color: "var(--text-dim)", fontSize: "var(--text-meta)" }}>{t("settings.agentStyleNone")}</div>
+      )}
+      {(styles ?? []).map((style) => (
+        <div key={style.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={style.name}>{style.name}</div>
+          <button type="button" className="codex-dialog-button" onClick={() => (editingId === style.id ? setEditingId(null) : startEdit(style))}>{t("settings.agentStyleEdit")}</button>
+          <button type="button" className="codex-dialog-button" data-variant="danger" onClick={() => void handleDelete(style.id)}>{t("settings.agentStyleDelete")}</button>
+        </div>
+      ))}
+      {editingId !== null && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={t("settings.agentStyleName")} maxLength={60} style={fieldStyle} />
+          <textarea value={formContent} onChange={(e) => setFormContent(e.target.value)} placeholder={t("settings.agentStyleContent")} rows={6} style={{ ...fieldStyle, resize: "vertical" }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="codex-dialog-button" onClick={() => void handleSave()} disabled={saving}>{t("settings.agentStyleSave")}</button>
+            <button type="button" className="codex-dialog-button" onClick={() => setEditingId(null)}>{t("settings.agentStyleCancel")}</button>
+          </div>
+        </div>
+      )}
+      {editingId === null && (
+        <button type="button" className="codex-dialog-button" onClick={startCreate}>{t("settings.agentStyleAdd")}</button>
+      )}
+      {error && <div style={{ color: "var(--red, #ef4444)", fontSize: "var(--text-meta)" }}>{error}</div>}
+    </div>
   );
 }

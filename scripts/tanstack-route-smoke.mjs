@@ -132,6 +132,7 @@ export async function smokeAllRoutes({ origin, authHeaders = {} }) {
     });
     await probe("GET", "/api/agent/running", [200]);
     await probe("GET", "/api/agent/running/events", [200], { expectAbort: true });
+    await probe("GET", "/api/agent-styles", [200]);
     await probe("GET", "/api/app-update", [200]);
     await probe("GET", "/api/auth/all-providers", [200]);
     await probe("GET", "/api/auth/providers", [200]);

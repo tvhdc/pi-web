@@ -105,6 +105,10 @@ interface Props {
   onToolPresetChange?: (preset: ToolPreset) => void;
   thinkingLevel?: "auto" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
   onThinkingLevelChange?: (level: "auto" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max") => void;
+  /** Agent styles (AGENTS.md replacements) the user can pick for a new session. */
+  agentStyles?: { id: string; name: string }[];
+  agentStyle?: string | null;
+  onAgentStyleChange?: (style: string | null) => void;
   availableThinkingLevels?: string[] | null;
   thinkingLevelMap?: Record<string, string | null> | null;
   retryInfo?: { attempt: number; maxAttempts: number; errorMessage?: string } | null;
@@ -684,6 +688,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   onSend, onAbort, onSteer, onFollowUp, isStreaming, model, isAutoModelSelection, modelNames, modelList, modelError, modelScopeWarnings, onModelChange, modelSwitching,
   onCompact, onAbortCompaction, onClearCompactFeedback, isCompacting, compactError, compactResult, toolPreset, onToolPresetChange,
   thinkingLevel, onThinkingLevelChange, availableThinkingLevels, thinkingLevelMap: _thinkingLevelMap,
+  agentStyles, agentStyle, onAgentStyleChange,
   retryInfo, queuedMessages, inputHistory = [],
   onSteerAllQueued, onQueueRemoveItem, onQueueEditItem, onQueueSteerItem,
   slashCommands, slashCommandsLoading, onLoadSlashCommands,
@@ -2618,6 +2623,22 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             position: "relative",
             gap: 2,
           }}>
+            {onAgentStyleChange && (
+              <select
+                className="composer-chip"
+                value={agentStyle ?? ""}
+                onChange={(e) => onAgentStyleChange(e.target.value === "" ? null : e.target.value)}
+                title={t("chat.agentStyleLabel")}
+                aria-label={t("chat.agentStyleLabel")}
+                style={{ maxWidth: 140 }}
+              >
+                <option value="">{t("chat.agentStyleDefault")}</option>
+                <option value="empty">{t("chat.agentStyleEmpty")}</option>
+                {(agentStyles ?? []).map((style) => (
+                  <option key={style.id} value={style.id}>{style.name}</option>
+                ))}
+              </select>
+            )}
             {onThinkingLevelChange && (
               <div ref={thinkingMenuRef} style={{ position: "relative" }}>
                 <button

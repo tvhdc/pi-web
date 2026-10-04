@@ -111,6 +111,25 @@ export function AppShell() {
   const { tokenSpeedEnabled, onTokenSpeedToggle } = useTokenSpeedPreference();
   const { hideActivity, onHideActivityToggle } = useHideActivityPreference();
   const [quoteSelectionEnabled, setQuoteSelectionEnabled] = useState(false);
+
+  // Agent styles (named AGENTS.md replacements) for the new-session composer.
+  // Settings dispatches "pi-agent-styles-changed" after a CRUD so this list stays current.
+  const [agentStyles, setAgentStyles] = useState<{ id: string; name: string }[]>([]);
+  const [newSessionAgentStyle, setNewSessionAgentStyle] = useState<string | null>(null);
+  const refreshAgentStyles = useCallback(() => {
+    fetch("/api/agent-styles")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.styles)) setAgentStyles(data.styles);
+      })
+      .catch(() => { /* styles stay at their last known list */ });
+  }, []);
+  useEffect(() => {
+    refreshAgentStyles();
+    const onChanged = () => refreshAgentStyles();
+    window.addEventListener("pi-agent-styles-changed", onChanged);
+    return () => window.removeEventListener("pi-agent-styles-changed", onChanged);
+  }, [refreshAgentStyles]);
   useEffect(() => {
     try {
       setQuoteSelectionEnabled(localStorage.getItem("pi-quote-selection-enabled") === "true");
@@ -2354,6 +2373,9 @@ export function AppShell() {
               soundEnabled={soundEnabled}
               tokenSpeedEnabled={tokenSpeedEnabled}
               hideActivity={hideActivity}
+              agentStyles={agentStyles}
+              agentStyle={newSessionAgentStyle}
+              onAgentStyleChange={setNewSessionAgentStyle}
               playDoneSound={playDoneSound}
               unlockAudio={unlockAudio}
               subagentMode={childSelected && selectedSession ? {

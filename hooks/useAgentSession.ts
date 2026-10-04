@@ -152,6 +152,8 @@ export interface UseAgentSessionOptions {
   sessionRunning?: boolean;
   newSessionCwd: string | null;
   newSessionDraftKey: string | null;
+  /** Agent-style id (or "empty") picked for the next new session; null/absent = default. */
+  newSessionAgentStyle?: string | null;
   onAgentEnd?: () => void;
   onAttentionNeeded?: (request: BlockingExtensionUiRequest) => void;
   onSessionCreated?: (session: SessionInfo, sourceDraftKey: string) => void;
@@ -292,11 +294,16 @@ type SlashCommandsResponse = {
 
 export function useAgentSession(opts: UseAgentSessionOptions) {
   const {
-    session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
+    session, sessionRunning, newSessionCwd, newSessionDraftKey, newSessionAgentStyle, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
     modelsRefreshKey, onBranchDataChange, onSystemPromptChange, onSessionStatsPanelOpen,
   } = opts;
 
   const isNew = session === null && newSessionCwd !== null;
+
+  // Read through a ref so ensureNewSession's dependency list stays stable; the
+  // value only matters while the session has not been created yet.
+  const agentStyleRef = useRef<string | null>(null);
+  agentStyleRef.current = newSessionAgentStyle ?? null;
 
   const [data, setData] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(!isNew);
@@ -764,6 +771,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           ...(selectedThinkingLevel
             ? { thinkingLevel: selectedThinkingLevel }
             : {}),
+          ...(agentStyleRef.current ? { agentStyle: agentStyleRef.current } : {}),
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

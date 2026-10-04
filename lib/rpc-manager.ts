@@ -145,6 +145,12 @@ export interface RpcSessionStartOptions {
   toolNames?: string[];
   initialModel?: { provider: string; modelId: string };
   thinkingLevel?: ThinkingLevel;
+  /**
+   * Agent-style selection resolved by the caller (see lib/agent-styles.ts):
+   * undefined keeps pi's normal context files, null disables all context files
+   * ("empty"), a string replaces the context files with exactly this content.
+   */
+  agentStyleContent?: string | null;
 }
 
 const CODING_TOOL_NAMES = CODING_BUILTIN_TOOLS;
@@ -2056,7 +2062,7 @@ export async function startRpcSession(
   cwd: string | undefined,
   options: RpcSessionStartOptions = {},
 ): Promise<{ session: AgentSessionWrapper; realSessionId: string }> {
-  const { toolNames, initialModel, thinkingLevel } = options;
+  const { toolNames, initialModel, thinkingLevel, agentStyleContent } = options;
   const registry = getRegistry();
   const locks = getLocks();
 
@@ -2138,6 +2144,14 @@ export async function startRpcSession(
             appendSystemPrompt: subagentResources.appendSystemPrompt,
           }
         : {
+            // A chosen agent style replaces every context file (AGENTS.md/CLAUDE.md)
+            // with the style content; "empty" drops context files without appending.
+            ...(agentStyleContent !== undefined
+              ? {
+                  noContextFiles: true,
+                  ...(agentStyleContent !== null ? { appendSystemPrompt: [agentStyleContent] } : {}),
+                }
+              : {}),
             extensionFactories: [
               systemPromptOverrideExtension,
               createProjectCommandBashExtension({

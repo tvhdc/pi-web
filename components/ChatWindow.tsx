@@ -68,6 +68,10 @@ interface Props {
   tokenSpeedEnabled?: boolean;
   /** Fold a finished turn's thinking + tool calls behind one "worked in MM:SS" row. */
   hideActivity?: boolean;
+  /** Stored agent styles (Settings → Agent styles) for the new-session composer. */
+  agentStyles?: { id: string; name: string }[];
+  agentStyle?: string | null;
+  onAgentStyleChange?: (style: string | null) => void;
   playDoneSound?: () => void;
   unlockAudio?: () => void;
   /** Read-only subagent transcript mode: external composer, no child runtime. */
@@ -301,7 +305,7 @@ function useMessageRefs(count: number): RefObject<(HTMLDivElement | null)[]> {
   return refs;
 }
 
-export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, desktopAside, playDoneSound = () => {}, unlockAudio, subagentMode, subagentTreeVisible = false, tokenSpeedEnabled = true, hideActivity = false }: Props) {
+export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onSessionStatsPanelOpen, onContextUsageChange, onOpenFile, onAskInNewChat, quoteSelectionEnabled = false, initialPrompt, onInitialPromptConsumed, desktopAside, playDoneSound = () => {}, unlockAudio, subagentMode, subagentTreeVisible = false, tokenSpeedEnabled = true, hideActivity = false, agentStyles, agentStyle = null, onAgentStyleChange }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
   const playDoneSoundRef = useRef(playDoneSound);
@@ -335,6 +339,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   } = useAgentSession({
     session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
     modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsPanelOpen,
+    newSessionAgentStyle: agentStyle,
     readOnlyHistory: Boolean(subagentMode),
     historyRefreshGeneration: subagentMode?.transcriptRefreshGeneration,
   });
@@ -813,6 +818,9 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       onToolPresetChange={session || isNew ? handleToolPresetChange : undefined}
       thinkingLevel={thinkingLevel}
       onThinkingLevelChange={session || isNew ? handleThinkingLevelChange : undefined}
+      agentStyles={agentStyles}
+      agentStyle={agentStyle}
+      onAgentStyleChange={isNew ? onAgentStyleChange : undefined}
       availableThinkingLevels={availableThinkingLevels}
       thinkingLevelMap={currentThinkingLevelMap}
       retryInfo={retryInfo}

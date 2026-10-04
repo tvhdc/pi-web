@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { allowFileRoot } from "@/lib/file-access";
 import { invalidateSessionListCache } from "@/lib/session-reader";
 import { startRpcSession } from "@/lib/rpc-manager";
+import { resolveAgentStyleSelection } from "@/lib/agent-styles";
 
 const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 
@@ -44,11 +45,25 @@ export async function POST(req: Request) {
     }
 
     // Use a one-time key so startRpcSession's lock doesn't conflict with real session ids
-    const { provider, modelId, toolNames, thinkingLevel, ...promptCommand } = command as { provider?: string; modelId?: string; toolNames?: string[]; thinkingLevel?: unknown; [key: string]: unknown };
+    const { provider, modelId, toolNames, thinkingLevel, agentStyle, ...promptCommand } = command as { provider?: string; modelId?: string; toolNames?: string[]; thinkingLevel?: unknown; agentStyle?: unknown; [key: string]: unknown };
     if ((provider && !modelId) || (!provider && modelId)) {
       throw new Error("provider and modelId must be provided together");
     }
     const explicitThinkingLevel = parseThinkingLevel(thinkingLevel);
+    // "default" (or absent) keeps pi's normal context files; "empty" drops them;
+    // anything else must be a stored agent-style id. Unknown ids fail before the
+    // session exists so the composer can show a clean error.
+    let agentStyleContent: string | null | undefined;
+    try {
+      agentStyleContent = resolveAgentStyleSelection(
+        agentStyle === undefined ? undefined : agentStyle as string | null,
+      );
+    } catch (error) {
+      return Response.json({
+        error: error instanceof Error ? error.message : String(error),
+        ...(commandType === "prompt" ? { code: "prompt_rejected", accepted: false } : {}),
+      }, { status: 400 });
+    }
 
     // Must be unique per request: startRpcSession coalesces concurrent callers
     // that share a key onto one session. Date.now() (ms resolution) collides for
@@ -58,6 +73,7 @@ export async function POST(req: Request) {
       ...(toolNames ? { toolNames } : {}),
       ...(provider && modelId ? { initialModel: { provider, modelId } } : {}),
       ...(explicitThinkingLevel ? { thinkingLevel: explicitThinkingLevel } : {}),
+      ...(agentStyleContent !== undefined ? { agentStyleContent } : {}),
     });
 
     // Keep the files-route allowed-roots cache (see app/api/files/[...path]/route.ts)

@@ -17,6 +17,7 @@ export const API_ROUTE_METHODS: Record<string, readonly string[]> = {
   "/api/agent/new": ["POST"],
   "/api/agent/running/events": ["GET"],
   "/api/agent/running": ["GET"],
+  "/api/agent-styles": ["DELETE", "GET", "POST", "PUT"],
   "/api/app-update": ["GET"],
   "/api/auth/all-providers": ["GET"],
   "/api/auth/api-key/$provider": ["DELETE", "GET", "POST"],

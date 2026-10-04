@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiAgentStylesRouteImport } from './routes/api/agent-styles'
 import { Route as ApiAppUpdateRouteImport } from './routes/api/app-update'
 import { Route as ApiCacheWarmingRouteImport } from './routes/api/cache-warming'
 import { Route as ApiDefaultCwdRouteImport } from './routes/api/default-cwd'
@@ -65,6 +66,11 @@ import { Route as ApiSessionsIdEntriesEntryIdToolResultRouteImport } from './rou
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAgentStylesRoute = ApiAgentStylesRouteImport.update({
+  id: '/api/agent-styles',
+  path: '/api/agent-styles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAppUpdateRoute = ApiAppUpdateRouteImport.update({
@@ -328,6 +334,7 @@ const ApiSessionsIdEntriesEntryIdToolResultRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/agent-styles': typeof ApiAgentStylesRoute
   '/api/app-update': typeof ApiAppUpdateRoute
   '/api/cache-warming': typeof ApiCacheWarmingRoute
   '/api/default-cwd': typeof ApiDefaultCwdRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/agent-styles': typeof ApiAgentStylesRoute
   '/api/app-update': typeof ApiAppUpdateRoute
   '/api/cache-warming': typeof ApiCacheWarmingRoute
   '/api/default-cwd': typeof ApiDefaultCwdRoute
@@ -437,6 +445,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/agent-styles': typeof ApiAgentStylesRoute
   '/api/app-update': typeof ApiAppUpdateRoute
   '/api/cache-warming': typeof ApiCacheWarmingRoute
   '/api/default-cwd': typeof ApiDefaultCwdRoute
@@ -493,6 +502,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api/agent-styles'
     | '/api/app-update'
     | '/api/cache-warming'
     | '/api/default-cwd'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api/agent-styles'
     | '/api/app-update'
     | '/api/cache-warming'
     | '/api/default-cwd'
@@ -601,6 +612,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/api/agent-styles'
     | '/api/app-update'
     | '/api/cache-warming'
     | '/api/default-cwd'
@@ -656,6 +668,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiAgentStylesRoute: typeof ApiAgentStylesRoute
   ApiAppUpdateRoute: typeof ApiAppUpdateRoute
   ApiCacheWarmingRoute: typeof ApiCacheWarmingRoute
   ApiDefaultCwdRoute: typeof ApiDefaultCwdRoute
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/agent-styles': {
+      id: '/api/agent-styles'
+      path: '/api/agent-styles'
+      fullPath: '/api/agent-styles'
+      preLoaderRoute: typeof ApiAgentStylesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/app-update': {
@@ -1171,6 +1191,7 @@ const ApiAgentRunningRouteWithChildren = ApiAgentRunningRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiAgentStylesRoute: ApiAgentStylesRoute,
   ApiAppUpdateRoute: ApiAppUpdateRoute,
   ApiCacheWarmingRoute: ApiCacheWarmingRoute,
   ApiDefaultCwdRoute: ApiDefaultCwdRoute,

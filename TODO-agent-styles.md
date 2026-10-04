@@ -1,0 +1,21 @@
+# TODO — Kiểu AGENTS.md (agent styles)
+
+- [x] 1. Viết SPEC + TODO.
+- [x] 2. Khảo sát: luồng tạo phiên mới — `POST /api/agent/new` → `startRpcSession` → `resourceLoaderOptions`. (ornith down, tự làm)
+- [x] 3. Khảo sát: SettingsPage section, i18n en/vi/zh-CN, route pattern, atomic-file. (tự làm)
+- [x] 4. `lib/agent-styles.ts` (CRUD + validate) + test — 11/11 pass.
+- [x] 5. `app/api/agent-styles/route.ts` (GET/POST/PUT/DELETE) + test — pass.
+- [x] 6. `lib/rpc-manager.ts`: nhận `agentStyleContent` (noContextFiles + appendSystemPrompt); `app/api/agent/new` nhận `agentStyle` (400 nếu id lạ).
+- [x] 7. UI: selector kiểu trong composer phiên mới (AppShell state → ChatWindow → ChatInput select).
+- [x] 8. UI: section Settings CRUD + i18n keys (en/vi/zh-CN).
+- [x] 9. `npx tsc --noEmit` + `npm test` (1296 pass / 3 fail có sẵn) + lint (0 lỗi mới).
+- [x] 10. Build (77 routes, 0 failures) + cài + restart service 8504 (×2, ngoài lượt).
+      Kiểm chứng trình duyệt: composer có select Default/Empty/Lite; Settings có section Edit/Delete/Add.
+      Kiểm chứng E2E qua API: session Lite có nội dung kiểu + KHÔNG có AGENTS.md; session Empty KHÔNG có cả hai.
+- [x] 11. commit.
+- [x] 2b. Thêm env `PI_SUBAGENTS_PI_CODING_AGENT_PACKAGE_ROOT` vào systemd drop-in để worker background chạy được.
+
+## Kết quả cuối
+Tính năng "Kiểu AGENTS.md" hoạt động: chọn Mặc định/Trống/kiểu-đã-lưu khi tạo phiên mới;
+Settings thêm/sửa/xoá kiểu (lưu `~/.pi/agent-web/agent-styles.json`). Kiểu thay thế TOÀN BỘ
+context files của phiên mới. Service 8504 đã chạy bản build mới.
