@@ -55,7 +55,6 @@ import {
 import { FolderIcon, getFileIcon } from "./FileIcons";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
-import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
 import type { ToolPreset } from "@/lib/tool-presets";
 
 export interface AttachedImage {
@@ -697,11 +696,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   compact = false,
 }: Props, ref) {
   const { t } = useI18n();
-  const { experimentalUi } = useExperimentalUiPreference();
   const isMobile = useIsMobile();
-  const agentPlaceholder = experimentalUi && !isMobile
-    ? t("chat.agentPlaceholderExperimental")
-    : t(isMobile ? "chat.agentPlaceholderMobile" : "chat.agentPlaceholder");
   const [value, setValue] = useState(() => (draftKey ? getDraft(draftKey)?.value ?? "" : ""));
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [modelDropdownRect, setModelDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -2300,8 +2295,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   ? t(isMobile ? "chat.runningDraftPlaceholderMobile" : "chat.runningDraftPlaceholder")
                   : queueItems.length > 0
                     ? t("chat.interjectAllPlaceholder")
-                    : agentPlaceholder)
-                : isStreaming ? agentPlaceholder
+                    : t(isMobile ? "chat.agentPlaceholderMobile" : "chat.agentPlaceholder"))
+                : isStreaming ? t(isMobile ? "chat.agentPlaceholderMobile" : "chat.agentPlaceholder")
                 : t("chat.messagePlaceholder")
             }
             rows={1}

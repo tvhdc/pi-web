@@ -27,3 +27,15 @@
   khớp bản cũ từng像素.
 - Lưu ý đã ghi nhận: dòng trạng thái nhân đôi "Running" chỉ xuất hiện khi tool có progress;
   đã sửa theo code (bỏ prefix `Running` trong progress, nối `·`).
+
+## 04/10/2026: GỠ theo yêu cầu chủ máy
+
+- Đã xoá nút "Giao diện thử nghiệm" + toàn bộ thay đổi gắn cờ
+  (Settings props, hook/preference/test, khoá i18n, transcript gated,
+  placeholder mới, timestamp tương đối, màu giờ color-mix, minimap dual-place).
+- **GIỮ NGUYÊN** các fix a11y vô hình: `role="listitem"` sidebar (6 chỗ),
+  `role="progressbar"` + aria tròn (DesktopConversationContext, ExtensionWidgets),
+  `<h1>` TaskHeader + CSS `.task-header-copy h1`.
+- Chưa restart service (chủ máy tự làm): bundle đang chạy trên8504 vẫn là bản CÓ toggle;
+  sau khi build+cài bản gỡ + restart thì nút biến mất.
+- Verify sau gỡ: tsc ✔ · test 1285/1288 (3 fail có sẵn) · lint 0 error · `grep experimental` = 0.

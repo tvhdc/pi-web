@@ -13,7 +13,6 @@ import {
 import { createPortal } from "react-dom";
 import { Archive, ArrowDown, ArrowUp, ChevronRight, Ellipsis, Folder, FolderPlus, LoaderCircle, MessageSquare, PanelLeft, Pencil, Pin, PinOff, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
-import { useExperimentalUiPreference } from "@/hooks/useExperimentalUiPreference";
 import { formatRelativeTime } from "@/lib/i18n/format";
 import { readArchivedSessionIds, writeArchivedSessionIds } from "@/lib/archived-sessions";
 import { filterProjectSessions, matchesSidebarQuery, sidebarProjectName, sidebarSessionTitle } from "@/lib/codex-sidebar-search";
@@ -1098,7 +1097,6 @@ function SessionRow({ session, selected, running, unread, variant = "nested", pr
   onArchive: () => void;
 }) {
   const { t } = useI18n();
-  const { experimentalUi } = useExperimentalUiPreference();
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1222,7 +1220,7 @@ function SessionRow({ session, selected, running, unread, variant = "nested", pr
             <span className={`codex-session-title${isRecent ? " codex-recent-session-title" : ""}`}>{title}</span>
       </button>
       )}
-      {isRecent && relativeTime ? <span className="codex-recent-session-time" style={experimentalUi ? { color: "color-mix(in srgb, var(--text-dim) 60%, var(--text))" } : undefined}>{relativeTime}</span> : null}
+      {isRecent && relativeTime ? <span className="codex-recent-session-time">{relativeTime}</span> : null}
       {!session.transient && (
         <div className="codex-session-menu-wrap">
           <IconButton ref={menuButtonRef} label={t("sidebar.sessionActions")} onClick={(event) => {

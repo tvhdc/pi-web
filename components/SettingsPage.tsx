@@ -10,7 +10,6 @@ import {
   Brain,
   Cpu,
   EyeOff,
-  FlaskConical,
   Gauge,
   GlobeLock,
   Image,
@@ -76,8 +75,6 @@ interface Props {
   onTokenSpeedToggle: () => void;
   hideActivity: boolean;
   onHideActivityToggle: () => void;
-  experimentalUi: boolean;
-  onExperimentalUiToggle: () => void;
   quoteSelectionEnabled: boolean;
   onQuoteSelectionChange: (enabled: boolean) => void;
   onClose: () => void;
@@ -115,8 +112,6 @@ export function SettingsPage({
   onTokenSpeedToggle,
   hideActivity,
   onHideActivityToggle,
-  experimentalUi,
-  onExperimentalUiToggle,
   quoteSelectionEnabled,
   onQuoteSelectionChange,
   onClose,
@@ -394,12 +389,6 @@ export function SettingsPage({
           <div className="settings-form-label"><EyeOff size={16} aria-hidden="true" /><div><strong>{t("settings.hideActivity")}</strong><span>{t("settings.hideActivityDescription")}</span></div></div>
           <button className="settings-switch" type="button" role="switch" aria-checked={hideActivity} onClick={onHideActivityToggle} title={t("settings.hideActivity")}>
             <span /><EyeOff size={15} aria-hidden="true" />
-          </button>
-        </section>
-        <section className="settings-form-section">
-          <div className="settings-form-label"><FlaskConical size={16} aria-hidden="true" /><div><strong>{t("settings.experimentalUi")}</strong><span>{t("settings.experimentalUiDescription")}</span></div></div>
-          <button className="settings-switch" type="button" role="switch" aria-checked={experimentalUi} onClick={onExperimentalUiToggle} title={t("settings.experimentalUi")}>
-            <span /><FlaskConical size={15} aria-hidden="true" />
           </button>
         </section>
         <section className="settings-form-section">
