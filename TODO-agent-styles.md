@@ -44,6 +44,12 @@
 - [x] Build 77 routes 0 failures; cài + restart 8504 (09:47:00 ngoài lượt); verify trình duyệt:
       nút gọn, icon+text cân, card list giữ full-width. Commit `115b477` + push.
 
+## V5 — nút Add style xuống footer (05/10)
+- [x] Bỏ nút Add style khỏi đầu danh sách → đặt vào footer, bên trái Cancel, bỏ icon `+`
+      (bỏ luôn import `Plus` không còn dùng).
+- [x] Test 1296 pass / 3 fail có sẵn; build 77 routes 0 failures; cài + restart 8504 (09:58:45).
+- [x] Verify trình duyệt: footer [Add style xanh | Cancel], danh sách gọn phía trên. Commit + push.
+
 ## Kết quả cuối
 Tính năng "Kiểu AGENTS.md" hoạt động: chọn Mặc định/Trống/kiểu-đã-lưu khi tạo phiên mới;
 Settings thêm/sửa/xoá kiểu (lưu `~/.pi/agent-web/agent-styles.json`). Kiểu thay thế TOÀN BỘ
