@@ -41,3 +41,10 @@ Người dùng được chọn "kiểu" chỉ thị (AGENTS.md) khi **bắt đ�
 - i18n thêm: agentStyleCreate/EditTitle/DeleteTitle/DeleteQuestion/Chars (en/vi/zh-CN).
 - Tiêu chí V2: tsc+test+build xanh; screenshot desktop 1440x900 + mobile 390x844 đạt
   (menu mở ra thấy mục style; Settings card + dialog không vỡ layout); commit.
+
+## V3 — Settings gọn: chỉ nút Quản lý (05/10)
+- Tab General: phần Agent styles chỉ hiện nút "Manage styles" (không còn danh sách).
+- Bấm vào mở MỘT dialog `size=editor` chứa 3 view chuyển động: list → form → confirm
+  (không chồng dialog lên dialog). List cuộn được (maxHeight 360), footer đổi theo view.
+- i18n thêm `settings.agentStyleManage` × 3 locale.
+- Tiêu chí V3: tsc+test+build xanh; verify trình duyệt cả 3 view trong dialog; commit + push.
