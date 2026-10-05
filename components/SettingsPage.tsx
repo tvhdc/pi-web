@@ -22,7 +22,6 @@ import {
   Moon,
   Pencil,
   Plug,
-  Plus,
   SlidersHorizontal,
   Sun,
   ThermometerSun,
@@ -727,10 +726,6 @@ function AgentStylesSection() {
 
   const listBody = (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <button type="button" className="codex-dialog-button" data-variant="primary" style={{ alignSelf: "flex-start" }} onClick={openCreate}>
-        <Plus size={13} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6 }} />
-        {t("settings.agentStyleAdd")}
-      </button>
       {styles === null ? null : styles.length === 0 ? (
         <div style={{ padding: "4px 0", color: "var(--text-dim)", fontSize: "var(--text-meta)" }}>
           {t("settings.agentStyleNone")}
@@ -810,7 +805,10 @@ function AgentStylesSection() {
           onClose={() => (saving ? undefined : closeManage())}
           footer={(
             view === "list" ? (
-              <button type="button" className="codex-dialog-button" onClick={closeManage}>{t("settings.agentStyleCancel")}</button>
+              <>
+                <button type="button" className="codex-dialog-button" data-variant="primary" onClick={openCreate}>{t("settings.agentStyleAdd")}</button>
+                <button type="button" className="codex-dialog-button" onClick={closeManage}>{t("settings.agentStyleCancel")}</button>
+              </>
             ) : view === "form" ? (
               <>
                 <button type="button" className="codex-dialog-button" onClick={() => { setView("list"); setEditing(null); }} disabled={saving}>{t("settings.agentStyleCancel")}</button>
