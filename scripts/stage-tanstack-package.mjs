@@ -60,7 +60,12 @@ const stagedPackage = {
   bin: rootPackage.bin,
   dependencies: rootPackage.dependencies,
   optionalDependencies: rootPackage.optionalDependencies ?? {},
-  files: ["bin", ".output", "README*.md", "LICENSE", "package.json"],
+  files: ["bin", ".output", "scripts", "README*.md", "LICENSE", "package.json"],
+  // Keep the image-limit postinstall so every `npm install -g` re-applies the
+  // pi-ai patch (upstream drops it on upgrade). Pulled from the root package.json.
+  scripts: {
+    postinstall: rootPackage.scripts?.postinstall ?? "node scripts/patch-pi-ai-image-limit.mjs || echo '[pi-web] image-limit patch skipped'",
+  },
 };
 
 mkdirSync(stageResolved, { recursive: true });
@@ -79,6 +84,15 @@ for (const name of INCLUDED_FILES) {
     fail(`included file is missing: ${source}`);
   }
   cpSync(source, join(stageResolved, name), { recursive: true });
+}
+// Ship only the runtime patch script (not the whole build tooling) so the
+// postinstall has something to run on the consumer machine.
+{
+  const patchSrc = join(repoResolved, "scripts", "patch-pi-ai-image-limit.mjs");
+  if (existsSync(patchSrc)) {
+    mkdirSync(join(stageResolved, "scripts"), { recursive: true });
+    cpSync(patchSrc, join(stageResolved, "scripts", "patch-pi-ai-image-limit.mjs"), { recursive: false });
+  }
 }
 writeFileSync(
   join(stageResolved, "package.json"),

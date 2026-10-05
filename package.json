@@ -20,6 +20,7 @@
   "files": [
     "bin",
     ".output",
+    "scripts",
     "README.md",
     "README.zh-CN.md",
     "LICENSE",
@@ -37,7 +38,8 @@
     "pack:tanstack": "node scripts/pack-tanstack.mjs",
     "start:tanstack": "node scripts/start-tanstack-output.mjs",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\""
+    "test": "node --experimental-strip-types --test \"app/**/*.test.mjs\" \"components/**/*.test.mjs\" \"hooks/**/*.test.mjs\" \"lib/**/*.test.mjs\" \"public/**/*.test.mjs\"",
+    "postinstall": "node scripts/patch-pi-ai-image-limit.mjs || echo '[pi-web] image-limit patch skipped'"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.99.1",

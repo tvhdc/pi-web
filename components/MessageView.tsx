@@ -967,6 +967,9 @@ function ToolCallBlock({ block, result, duration, defaultExpanded, isStreaming, 
     : null;
   const resultIsEmpty = resultText === null ? false : (resultText.trim() === "(no output)" || resultText.trim() === "");
   const isError = effectiveResult?.isError ?? false;
+  const resultImages = effectiveResult
+    ? effectiveResult.content.filter((b): b is ImageContent => b.type === "image")
+    : [];
 
   return (
     <div
@@ -1066,6 +1069,31 @@ function ToolCallBlock({ block, result, duration, defaultExpanded, isStreaming, 
           />
         )
       ))}
+      {/* ── Result images (screenshots etc.) ── */}
+      {expanded && !resultLoading && !resultError && resultImages.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            padding: "8px 10px",
+            borderTop: "1px solid var(--border)",
+            background: "var(--bg)",
+          }}
+        >
+          {resultImages.map((img, i) => {
+            const src = imageSource(img);
+            return src ? (
+              <img
+                key={i}
+                src={src}
+                alt={t("chat.attachedImage", { n: i + 1 })}
+                style={{ maxWidth: 320, maxHeight: 320, borderRadius: 6, objectFit: "contain", display: "block", border: "1px solid rgba(59,130,246,0.15)" }}
+              />
+            ) : null;
+          })}
+        </div>
+      )}
     </div>
   );
 }
