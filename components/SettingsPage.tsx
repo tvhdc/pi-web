@@ -727,7 +727,7 @@ function AgentStylesSection() {
 
   const listBody = (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <button type="button" className="codex-dialog-button" data-variant="primary" onClick={openCreate}>
+      <button type="button" className="codex-dialog-button" data-variant="primary" style={{ alignSelf: "flex-start" }} onClick={openCreate}>
         <Plus size={13} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6 }} />
         {t("settings.agentStyleAdd")}
       </button>
