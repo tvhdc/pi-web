@@ -611,12 +611,16 @@ interface AgentStyleEntry {
   content: string;
 }
 
-/** Settings CRUD for named AGENTS.md styles (stored in the agent dir). */
+/** Settings CRUD for named AGENTS.md styles (stored in the agent dir).
+ * The General tab shows only a manage button; the list and all add/edit/delete
+ * actions live inside one dialog (list → form → confirm views, no nested dialogs). */
 function AgentStylesSection() {
   const { t } = useI18n();
   const [styles, setStyles] = useState<AgentStyleEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<"create" | AgentStyleEntry | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [view, setView] = useState<"list" | "form" | "confirm">("list");
+  const [editing, setEditing] = useState<AgentStyleEntry | "create" | null>(null);
   const [formName, setFormName] = useState("");
   const [formContent, setFormContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -636,26 +640,35 @@ function AgentStylesSection() {
 
   const notifyChanged = () => window.dispatchEvent(new Event("pi-agent-styles-changed"));
 
-  const openCreate = () => { setDialog("create"); setFormName(""); setFormContent(""); };
-  const openEdit = (style: AgentStyleEntry) => { setDialog(style); setFormName(style.name); setFormContent(style.content); };
+  const closeManage = () => {
+    setManageOpen(false);
+    setView("list");
+    setEditing(null);
+    setDeleting(null);
+  };
+
+  const openCreate = () => { setView("form"); setEditing("create"); setFormName(""); setFormContent(""); };
+  const openEdit = (style: AgentStyleEntry) => { setView("form"); setEditing(style); setFormName(style.name); setFormContent(style.content); };
+  const openDelete = (style: AgentStyleEntry) => { setView("confirm"); setDeleting(style); };
 
   const handleSave = async () => {
-    if (saving || dialog === null) return;
+    if (saving || editing === null) return;
     setSaving(true);
     setError(null);
     try {
       const response = await fetch("/api/agent-styles", {
-        method: dialog === "create" ? "POST" : "PUT",
+        method: editing === "create" ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dialog === "create"
+        body: JSON.stringify(editing === "create"
           ? { name: formName, content: formContent }
-          : { id: dialog.id, name: formName, content: formContent }),
+          : { id: editing.id, name: formName, content: formContent }),
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(data.error ?? `HTTP ${response.status}`);
       }
-      setDialog(null);
+      setView("list");
+      setEditing(null);
       refresh();
       notifyChanged();
     } catch (e: unknown) {
@@ -679,6 +692,7 @@ function AgentStylesSection() {
         const data = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(data.error ?? `HTTP ${response.status}`);
       }
+      setView("list");
       setDeleting(null);
       refresh();
       notifyChanged();
@@ -711,20 +725,18 @@ function AgentStylesSection() {
 
   const labelStyle: CSSProperties = { display: "block", marginBottom: 4, fontSize: "var(--text-meta)", color: "var(--text-dim)" };
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button type="button" className="codex-dialog-button" data-variant="primary" onClick={openCreate}>
-          <Plus size={13} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6 }} />
-          {t("settings.agentStyleAdd")}
-        </button>
-      </div>
+  const listBody = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <button type="button" className="codex-dialog-button" data-variant="primary" onClick={openCreate}>
+        <Plus size={13} strokeWidth={2} aria-hidden="true" style={{ marginRight: 6 }} />
+        {t("settings.agentStyleAdd")}
+      </button>
       {styles === null ? null : styles.length === 0 ? (
-        <div style={{ padding: "10px 0", color: "var(--text-dim)", fontSize: "var(--text-meta)" }}>
+        <div style={{ padding: "4px 0", color: "var(--text-dim)", fontSize: "var(--text-meta)" }}>
           {t("settings.agentStyleNone")}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
           {styles.map((style) => (
             <div
               key={style.id}
@@ -745,7 +757,7 @@ function AgentStylesSection() {
               <button type="button" style={iconButtonStyle} title={t("settings.agentStyleEdit")} aria-label={t("settings.agentStyleEdit")} onClick={() => openEdit(style)}>
                 <Pencil size={13} strokeWidth={2} aria-hidden="true" />
               </button>
-              <button type="button" style={iconButtonStyle} title={t("settings.agentStyleDelete")} aria-label={t("settings.agentStyleDelete")} onClick={() => setDeleting(style)}>
+              <button type="button" style={iconButtonStyle} title={t("settings.agentStyleDelete")} aria-label={t("settings.agentStyleDelete")} onClick={() => openDelete(style)}>
                 <Trash2 size={13} strokeWidth={2} aria-hidden="true" />
               </button>
             </div>
@@ -753,63 +765,70 @@ function AgentStylesSection() {
         </div>
       )}
       {error && <div style={{ color: "var(--error, #ef4444)", fontSize: "var(--text-meta)" }}>{error}</div>}
-      {dialog !== null && (
+    </div>
+  );
+
+  const formBody = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <label style={labelStyle} htmlFor="agent-style-name">
+        {t("settings.agentStyleName")}
+      </label>
+      <input
+        id="agent-style-name"
+        value={formName}
+        onChange={(e) => setFormName(e.target.value)}
+        placeholder={t("settings.agentStyleName")}
+        maxLength={60}
+        autoFocus
+        style={fieldStyle}
+      />
+      <label style={labelStyle} htmlFor="agent-style-content">
+        {t("settings.agentStyleContent")}
+      </label>
+      <textarea
+        id="agent-style-content"
+        value={formContent}
+        onChange={(e) => setFormContent(e.target.value)}
+        placeholder={t("settings.agentStyleContent")}
+        rows={10}
+        style={{ ...fieldStyle, resize: "vertical", minHeight: 160 }}
+      />
+      {error && <div style={{ color: "var(--error, #ef4444)", fontSize: "var(--text-meta)" }}>{error}</div>}
+    </div>
+  );
+
+  return (
+    <div>
+      <button type="button" className="codex-dialog-button" onClick={() => setManageOpen(true)} title={t("settings.agentStyleManage")}>
+        {t("settings.agentStyleManage")}
+      </button>
+      {manageOpen && (
         <DialogShell
           size="editor"
-          title={dialog === "create" ? t("settings.agentStyleCreate") : t("settings.agentStyleEditTitle")}
-          ariaLabel={dialog === "create" ? t("settings.agentStyleCreate") : t("settings.agentStyleEditTitle")}
-          onClose={() => (saving ? undefined : setDialog(null))}
+          title={t("settings.agentStyles")}
+          ariaLabel={t("settings.agentStyles")}
+          onClose={() => (saving ? undefined : closeManage())}
           footer={(
-            <>
-              <button type="button" className="codex-dialog-button" onClick={() => setDialog(null)} disabled={saving}>{t("settings.agentStyleCancel")}</button>
-              <button type="button" className="codex-dialog-button" data-variant="primary" onClick={() => void handleSave()} disabled={saving || formName.trim().length === 0}>{t("settings.agentStyleSave")}</button>
-            </>
+            view === "list" ? (
+              <button type="button" className="codex-dialog-button" onClick={closeManage}>{t("settings.agentStyleCancel")}</button>
+            ) : view === "form" ? (
+              <>
+                <button type="button" className="codex-dialog-button" onClick={() => { setView("list"); setEditing(null); }} disabled={saving}>{t("settings.agentStyleCancel")}</button>
+                <button type="button" className="codex-dialog-button" data-variant="primary" onClick={() => void handleSave()} disabled={saving || formName.trim().length === 0}>{t("settings.agentStyleSave")}</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="codex-dialog-button" onClick={() => { setView("list"); setDeleting(null); }} disabled={saving}>{t("settings.agentStyleCancel")}</button>
+                <button type="button" className="codex-dialog-button" data-variant="danger" onClick={() => void handleDelete()} disabled={saving}>{t("settings.agentStyleDelete")}</button>
+              </>
+            )
           )}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <label style={labelStyle} htmlFor="agent-style-name">
-              {t("settings.agentStyleName")}
-            </label>
-            <input
-              id="agent-style-name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder={t("settings.agentStyleName")}
-              maxLength={60}
-              autoFocus
-              style={fieldStyle}
-            />
-            <label style={labelStyle} htmlFor="agent-style-content">
-              {t("settings.agentStyleContent")}
-            </label>
-            <textarea
-              id="agent-style-content"
-              value={formContent}
-              onChange={(e) => setFormContent(e.target.value)}
-              placeholder={t("settings.agentStyleContent")}
-              rows={10}
-              style={{ ...fieldStyle, resize: "vertical", minHeight: 160 }}
-            />
-          </div>
-        </DialogShell>
-      )}
-      {deleting !== null && (
-        <DialogShell
-          size="confirm"
-          title={t("settings.agentStyleDeleteTitle")}
-          ariaLabel={t("settings.agentStyleDeleteTitle")}
-          onClose={() => (saving ? undefined : setDeleting(null))}
-          backdropDismissible={false}
-          footer={(
-            <>
-              <button type="button" className="codex-dialog-button" onClick={() => setDeleting(null)} disabled={saving}>{t("settings.agentStyleCancel")}</button>
-              <button type="button" className="codex-dialog-button" data-variant="danger" onClick={() => void handleDelete()} disabled={saving}>{t("settings.agentStyleDelete")}</button>
-            </>
+          {view === "list" ? listBody : view === "form" ? formBody : (
+            <p className="codex-dialog-copy">
+              {t("settings.agentStyleDeleteQuestion")} — <strong>{deleting?.name}</strong>
+            </p>
           )}
-        >
-          <p className="codex-dialog-copy">
-            {t("settings.agentStyleDeleteQuestion")} — <strong>{deleting.name}</strong>
-          </p>
         </DialogShell>
       )}
     </div>

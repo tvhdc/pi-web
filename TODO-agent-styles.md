@@ -27,6 +27,17 @@
       CRUD UI end-to-end: tạo "Test UI" → hiện list → xoá confirm → Gone (API xác nhận).
 - [x] Commit V2.
 
+## V3 — Settings chỉ hiện nút Quản lý (05/10)
+- [x] `AgentStylesSection` viết lại: tab General chỉ còn nút "Manage styles";
+      dialog quản lý chứa 3 view (list → form → confirm) trong MỘT dialog, không chồng dialog.
+- [x] i18n thêm `settings.agentStyleManage` × 3 locale.
+- [x] Sửa test `lib/tanstack-package.test.mjs` (hỏng từ commit image-limit b513d25:
+      staged package giờ có `scripts.postinstall`); suite 1296 pass / 3 fail có sẵn.
+- [x] Build 77 routes 0 failures; cài + restart 8504 (09:37:22 ngoài lượt); http 200.
+- [x] Verify trình duyệt 1440×900: tab chỉ có nút Manage; dialog list + Add;
+      edit form trong dialog (Cancel/Save); delete confirm trong dialog (Cancel/Delete danger).
+- [x] Commit + push.
+
 ## Kết quả cuối
 Tính năng "Kiểu AGENTS.md" hoạt động: chọn Mặc định/Trống/kiểu-đã-lưu khi tạo phiên mới;
 Settings thêm/sửa/xoá kiểu (lưu `~/.pi/agent-web/agent-styles.json`). Kiểu thay thế TOÀN BỘ

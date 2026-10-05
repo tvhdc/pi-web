@@ -36,6 +36,7 @@ export const viLocale: LocalePlugin = {
     "settings.hideActivityDescription": "Gom phần suy nghĩ và các lần gọi tool của lượt đã xong vào một dòng \"chạy trong …\".",
     "settings.agentStyles": "Kiểu AGENTS.md",
     "settings.agentStylesDescription": "Chọn chỉ thị AGENTS.md cho phiên mới. Mỗi kiểu thay thế TOÀN BỘ AGENTS.md/CLAUDE.md của phiên đó; \"Trống\" nghĩa là không có chỉ thị nào.",
+    "settings.agentStyleManage": "Quản lý kiểu",
     "settings.agentStyleAdd": "Thêm kiểu",
     "settings.agentStyleName": "Tên",
     "settings.agentStyleContent": "Nội dung chỉ thị (markdown)",

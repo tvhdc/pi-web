@@ -36,6 +36,7 @@ export const enLocale: LocalePlugin = {
     "settings.hideActivityDescription": "Fold a finished turn's thinking and tool calls into one \"worked in\" line.",
     "settings.agentStyles": "Agent styles",
     "settings.agentStylesDescription": "Pick which AGENTS.md instructions a new session starts with. A style replaces every AGENTS.md/CLAUDE.md for that session; \"Empty\" starts with no instructions.",
+    "settings.agentStyleManage": "Manage styles",
     "settings.agentStyleAdd": "Add style",
     "settings.agentStyleName": "Name",
     "settings.agentStyleContent": "Instructions (markdown)",

@@ -36,6 +36,7 @@ export const zhCNLocale: LocalePlugin = {
     "settings.hideActivityDescription": "回合结束后，把思考与工具调用折叠为一行“worked in”。",
     "settings.agentStyles": "Agent 样式",
     "settings.agentStylesDescription": "选择新会话启动时使用的 AGENTS.md 指令。每个样式会替换该会话的全部 AGENTS.md/CLAUDE.md；“空”表示不带任何指令。",
+    "settings.agentStyleManage": "管理样式",
     "settings.agentStyleAdd": "添加样式",
     "settings.agentStyleName": "名称",
     "settings.agentStyleContent": "指令内容（Markdown）",
