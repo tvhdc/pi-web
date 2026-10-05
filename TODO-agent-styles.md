@@ -15,6 +15,18 @@
 - [x] 11. commit.
 - [x] 2b. Thêm env `PI_SUBAGENTS_PI_CODING_AGENT_PACKAGE_ROOT` vào systemd drop-in để worker background chạy được.
 
+## V2 — chỉnh UI (05/10)
+- [x] Composer: bỏ `<select>` khỏi toolbar → đưa vào menu "more" (mục "AGENTS.md style" + checkmark);
+      helper `renderAgentStyleMenu()` để giữ toolbar JSX trong giới hạn test mobile grid (dropdownRef < 6000 ký tự).
+- [x] Settings: danh sách card (tên + số ký tự + Pencil/Trash2), button "Thêm kiểu" primary,
+      form trong `DialogShell size=editor`, xoá có confirm `DialogShell size=confirm`.
+- [x] i18n thêm 5 keys (agentStyleCreate/EditTitle/DeleteTitle/DeleteQuestion/Chars) × 3 locale.
+- [x] tsc xanh; test 1296 pass / 3 fail có sẵn; build 77 routes 0 failures; cài + restart 8504 (02:17:55).
+- [x] Verify trình duyệt: desktop 1440×900 (menu more có mục style + Settings card/dialog/xoá);
+      mobile 390×844 (toolbar gọn, menu more mở thấy mục style, không vỡ layout);
+      CRUD UI end-to-end: tạo "Test UI" → hiện list → xoá confirm → Gone (API xác nhận).
+- [x] Commit V2.
+
 ## Kết quả cuối
 Tính năng "Kiểu AGENTS.md" hoạt động: chọn Mặc định/Trống/kiểu-đã-lưu khi tạo phiên mới;
 Settings thêm/sửa/xoá kiểu (lưu `~/.pi/agent-web/agent-styles.json`). Kiểu thay thế TOÀN BỘ

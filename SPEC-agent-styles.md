@@ -31,3 +31,13 @@ Người dùng được chọn "kiểu" chỉ thị (AGENTS.md) khi **bắt đ�
 4. Kiểm chứng trình duyệt: phiên mới chọn "Trống" → không còn AGENTS.md trong system prompt;
    chọn kiểu "Lite" → đúng nội dung kiểu đó.
 5. Service 8504 restart ngoài lượt, `curl http://127.0.0.1:8504/` = 200, gửi 1 tin phiên mới chạy được.
+
+## V2 — chỉnh UI (05/10, chủ máy: mobile không thân thiện, Settings sơ sài)
+- Composer: bỏ `<select>` khỏi toolbar → đưa lựa chọn kiểu vào menu "more" (chip tool-preset),
+  mục "AGENTS.md style" với checkmark; helper `renderAgentStyleMenu()` để giữ toolbar JSX trong
+  giới hạn test `ChatInput.mobile-thinking-menu.test.mjs` (dropdownRef < 6000 ký tự sau composer-middle).
+- Settings: danh sách card (tên + số ký tự + icon Pencil/Trash2), button "Thêm kiểu" primary,
+  form trong `DialogShell size=editor`, xoá có confirm `DialogShell size=confirm`.
+- i18n thêm: agentStyleCreate/EditTitle/DeleteTitle/DeleteQuestion/Chars (en/vi/zh-CN).
+- Tiêu chí V2: tsc+test+build xanh; screenshot desktop 1440x900 + mobile 390x844 đạt
+  (menu mở ra thấy mục style; Settings card + dialog không vỡ layout); commit.

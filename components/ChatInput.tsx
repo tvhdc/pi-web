@@ -1790,8 +1790,49 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-
-
+  // AGENTS.md style picker for the new-session home, rendered inside the access
+  // menu (kept as a helper so the toolbar JSX stays within the mobile grid test).
+  const renderAgentStyleMenu = () => (
+    <>
+      <div style={{ height: 1, background: "var(--border)" }} />
+      <div style={{ padding: "8px 12px 4px", fontSize: "var(--text-meta)", color: "var(--text-dim)" }}>
+        {t("chat.agentStyleLabel")}
+      </div>
+      <div style={{ maxHeight: 220, overflowY: "auto" }}>
+        {[
+          { id: "default", label: t("chat.agentStyleDefault") },
+          { id: "empty", label: t("chat.agentStyleEmpty") },
+          ...(agentStyles ?? []).map((style) => ({ id: style.id, label: style.name })),
+        ].map((option) => {
+          const isActive = (agentStyle ?? "default") === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => {
+                setMoreMenuOpen(false);
+                if (!isActive) onAgentStyleChange?.(option.id === "default" ? null : option.id);
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                width: "100%", padding: "7px 12px",
+                background: isActive ? "var(--bg-selected)" : "none",
+                border: "none",
+                color: isActive ? "var(--text)" : "var(--text-muted)",
+                cursor: "pointer", fontSize: "var(--text-ui)", textAlign: "left",
+                fontWeight: isActive ? 600 : 400,
+              }}
+            >
+              {isActive
+                ? <Check size={10} strokeWidth={2} aria-hidden="true" style={{ color: "var(--accent)", flexShrink: 0 }} />
+                : <span style={{ width: 10, flexShrink: 0 }} />}
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
 
   return (
     <div
@@ -2464,6 +2505,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                       </button>
                     </>
                   )}
+                  {onAgentStyleChange && renderAgentStyleMenu()}
                 </div>
               )}
             </div>
@@ -2623,22 +2665,6 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             position: "relative",
             gap: 2,
           }}>
-            {onAgentStyleChange && (
-              <select
-                className="composer-chip"
-                value={agentStyle ?? ""}
-                onChange={(e) => onAgentStyleChange(e.target.value === "" ? null : e.target.value)}
-                title={t("chat.agentStyleLabel")}
-                aria-label={t("chat.agentStyleLabel")}
-                style={{ maxWidth: 140 }}
-              >
-                <option value="">{t("chat.agentStyleDefault")}</option>
-                <option value="empty">{t("chat.agentStyleEmpty")}</option>
-                {(agentStyles ?? []).map((style) => (
-                  <option key={style.id} value={style.id}>{style.name}</option>
-                ))}
-              </select>
-            )}
             {onThinkingLevelChange && (
               <div ref={thinkingMenuRef} style={{ position: "relative" }}>
                 <button
