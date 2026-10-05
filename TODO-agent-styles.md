@@ -38,6 +38,12 @@
       edit form trong dialog (Cancel/Save); delete confirm trong dialog (Cancel/Delete danger).
 - [x] Commit + push.
 
+## V4 — nút "Add style" gọn (05/10)
+- [x] Nút Add style bị giãn full-width (icon tụt trái, text giữa) vì nằm trong column-flex
+      (cross-axis) ⇒ `flex: 0 0 auto` không ăn ⇒ sửa `alignSelf: "flex-start"`.
+- [x] Build 77 routes 0 failures; cài + restart 8504 (09:47:00 ngoài lượt); verify trình duyệt:
+      nút gọn, icon+text cân, card list giữ full-width. Commit `115b477` + push.
+
 ## Kết quả cuối
 Tính năng "Kiểu AGENTS.md" hoạt động: chọn Mặc định/Trống/kiểu-đã-lưu khi tạo phiên mới;
 Settings thêm/sửa/xoá kiểu (lưu `~/.pi/agent-web/agent-styles.json`). Kiểu thay thế TOÀN BỘ
