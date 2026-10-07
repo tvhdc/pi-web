@@ -41,14 +41,24 @@ test("keeps the session event stream open through the idle grace window", () => 
   assert.match(graceSource, /setTimeout\(\(\) => void checkServerIdle\(\), EVENT_STREAM_IDLE_GRACE_MS\)/);
   assert.match(graceSource, /fetch\(`\/api\/agent\/\$\{encodeURIComponent\(sid\)\}`\)/);
   assert.match(graceSource, /closeEvents\(\)/);
-  assert.match(finishSource, /scheduleEventStreamClose\(sid\)/);
-  assert.doesNotMatch(finishSource, /closeEvents\(\)/);
-  assert.doesNotMatch(agentEndSource, /closeEvents\(\)/);
-  assert.match(agentStartSource, /cancelEventStreamGrace\(\)/);
-  assert.match(agentSettledSource, /scheduleEventStreamClose\(sid\)/);
-  assert.match(agentSettledSource, /onAgentEnd\?\.\(\)/);
+  assert.match(source, /const settleAfterPersistedReload = useCallback\(async/);
+  const persistedReloadSource = source.slice(
+    source.indexOf("const settleAfterPersistedReload = useCallback"),
+    source.indexOf("const waitForPromptSettlement"),
+  );
+  assert.ok(
+    persistedReloadSource.indexOf("await loadSession(sid,") < persistedReloadSource.indexOf("settleUiStage()"),
+    "completed runs must reload persisted messages before clearing the live stream",
+  );
+  assert.match(persistedReloadSource, /scheduleEventStreamClose\(sid\)/);
+  assert.match(persistedReloadSource, /notify && wasRunning/);
+  assert.match(agentSettledSource, /settleAfterPersistedReload\(sid/);
+  assert.match(promptDoneSource, /settleAfterPersistedReload\(sid, runId/);
+  assert.doesNotMatch(promptDoneSource, /void loadSession\(sid\)/);
+
+  assert.match(agentSettledSource, /acceptsPromptGeneration\(event\)/);
   assert.match(promptDoneSource, /notifyPromptStage\(runId\)/);
-  assert.match(promptDoneSource, /scheduleEventStreamClose\(sid\)/);
+  assert.doesNotMatch(promptDoneSource, /scheduleEventStreamClose\(sid\)/);
   assert.match(sendSource, /const definitivelyRejected = !promptRequestStarted/);
   assert.match(sendSource, /if \(!definitivelyRejected && sentSessionId\) \{[\s\S]*?waitForPromptSettlement/);
   assert.match(sendSource, /restoreSubmission\(message, images, composerDraftKey\);[\s\S]*?if \(sentSessionId\) \{[\s\S]*?reconcileAgentState\(sentSessionId\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?closeEvents\(\)/);
@@ -125,7 +135,7 @@ test("reloads the session when the tab becomes visible after a turn", () => {
   );
   assert.match(recoverySource, /visibilitychange/);
   assert.match(recoverySource, /pageshow/);
-  assert.match(recoverySource, /else void loadSession\(sid\)/);
+  assert.match(recoverySource, /else void loadSession\(sid, false, false, true\)/);
   assert.match(recoverySource, /agentRunning\s*\?\s*setInterval\(sync, AGENT_STATE_RECONCILE_MS\)/);
 });
 
@@ -188,7 +198,7 @@ test("context usage refreshes from assistant completions and live agent state", 
     "agent_end must apply context usage before the run-generation gate",
   );
   assert.match(historyRefreshSource, /loadSession\(session\.id, false, false\)/);
-  assert.match(source, /loadSession\(sid, true, !opts\.readOnlyHistory\)/);
+  assert.match(source, /loadSession\(sid, true, !opts\.readOnlyHistory, true, true\)/);
   assert.match(source, /loadedSessionIdRef/);
   assert.match(source, /\[session\?\.id\]/);
   assert.match(source, /from "@\/lib\/conversation-context"/);
@@ -297,7 +307,10 @@ test("switching sessions reloads without remounting ChatWindow", () => {
     appShellSource.indexOf("  // ---- Subagent tree"),
   );
   assert.doesNotMatch(selectSource, /setSessionKey/);
-  assert.match(source, /if \(loadedSessionIdRef\.current === sid\) return/);
+  assert.match(source, /const loadSession = useCallback\(async \(sid: string, showLoading = false, includeState = false, followCurrentLeaf = false, replaceHistory = false\)/);
+  assert.match(source, /const merged = replaceHistory\s+\? \{ items: d\.context\.messages, entryIds: incomingIds \}/);
+  assert.match(source, /loadSession\(sid, true, !opts\.readOnlyHistory, true, true\)/);
+  assert.match(chatWindowSource, /if \(loading && messages\.length === 0\)/);
 });
 
 test("abandoned fresh-session drafts are cleared and cannot be recreated by late rejection", () => {
@@ -455,6 +468,8 @@ test("commits the live assistant before a post-turn reload can drop it", () => {
     source.indexOf("  const notifyPromptStage = useCallback"),
   );
   assert.match(source, /const commitLiveAssistant = useCallback/);
+  assert.match(source, /function hasPersistableAssistantContent\(message: AgentMessage \| null \| undefined\)/);
+  assert.match(source, /!persistThinkingOnly && !hasPersistableAssistantContent\(live\)/);
   assert.match(source, /streamStateRef\.current\.streamingMessage/);
   assert.ok(
     agentEndSource.indexOf("commitLiveAssistant()") < agentEndSource.indexOf('dispatch({ type: "end" })'),

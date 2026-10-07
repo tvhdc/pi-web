@@ -30,8 +30,14 @@ import {
   CHAT_SCROLL_TAIL_TOLERANCE,
   getLiveFollowAttached,
 } from "@/lib/chat-lazy-load";
-import { SESSION_MESSAGE_WINDOW, historyItemKey, mergeWindowedHistory } from "@/lib/session-window";
+import { SESSION_INITIAL_MESSAGE_WINDOW, SESSION_MESSAGE_WINDOW, historyItemKey, mergeWindowedHistory } from "@/lib/session-window";
 import { highestThinkingLevel } from "@/lib/thinking-level";
+
+function hasPersistableAssistantContent(message: AgentMessage | null | undefined): boolean {
+  if (!message || message.role !== "assistant") return false;
+  return message.content.some((block) => block.type !== "thinking" || block.thinking.trim() !== "");
+}
+
 import {
   INITIAL_STREAMING_STATE,
   streamReducer,
@@ -377,10 +383,10 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     messagesRef.current = resolved;
     setMessages(resolved);
   }, []);
-  const commitLiveAssistant = useCallback(() => {
+  const commitLiveAssistant = useCallback((persistThinkingOnly = false) => {
     textDeltaBatcherRef.current?.flush();
     const live = streamStateRef.current.streamingMessage;
-    if (!live?.content.length) return;
+    if (!live?.content.length || (!persistThinkingOnly && !hasPersistableAssistantContent(live))) return;
     const normalized = normalizeToolCalls(live);
     replaceMessages((prev) => {
       const last = prev[prev.length - 1];
@@ -549,7 +555,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     } satisfies SessionStatsInfo;
   }, [messages, sessionStatsOverride, contextUsage, data?.filePath, data?.totalActiveMs, data?.totalCost, session?.id, session?.name]);
 
-  const loadSession = useCallback(async (sid: string, showLoading = false, includeState = false) => {
+  const loadSession = useCallback(async (sid: string, showLoading = false, includeState = false, followCurrentLeaf = false, replaceHistory = false) => {
     const gen = ++loadSessionGenRef.current;
     let messagesLoaded = false;
     try {
@@ -558,9 +564,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         deferThinking: "1",
         deferMedia: "1",
         deferToolResults: "1",
-        limit: String(SESSION_MESSAGE_WINDOW),
+        limit: String(SESSION_INITIAL_MESSAGE_WINDOW),
       });
-      if (activeLeafIdRef.current) params.set("leafId", activeLeafIdRef.current);
+      if (activeLeafIdRef.current && !followCurrentLeaf) params.set("leafId", activeLeafIdRef.current);
       const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}?${params}`);
       if (res.status === 404) {
         if (showLoading && gen === loadSessionGenRef.current) {
@@ -579,12 +585,14 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       textDeltaBatcher.flush();
       commitLiveAssistant();
       const incomingIds = d.context.entryIds ?? [];
-      const merged = mergeWindowedHistory(
-        messagesRef.current,
-        entryIdsRef.current,
-        d.context.messages,
-        incomingIds,
-      );
+      const merged = replaceHistory
+        ? { items: d.context.messages, entryIds: incomingIds }
+        : mergeWindowedHistory(
+          messagesRef.current,
+          entryIdsRef.current,
+          d.context.messages,
+          incomingIds,
+        );
       setData(d);
       setActiveLeafId(d.leafId);
       replaceMessages(merged.items);
@@ -1070,7 +1078,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     if (promptRunIdRef.current !== runId) return;
     try {
       if (sid) {
-        await loadSession(sid);
+        await loadSession(sid, false, false, true);
         refreshContextUsage(sid);
       }
     } finally {
@@ -1089,6 +1097,23 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       if (sid) scheduleEventStreamClose(sid);
     }
   }, [loadSession, notifyPromptStage, onAgentEnd, refreshContextUsage, scheduleEventStreamClose, settleUiStage]);
+
+  const settleAfterPersistedReload = useCallback(async (sid: string | null, runId: number, notify = false) => {
+    try {
+      if (sid) {
+        await loadSession(sid, false, false, true);
+      }
+    } finally {
+      if (promptRunIdRef.current !== runId || (sid !== null && sessionIdRef.current !== sid)) return;
+      const wasRunning = settleUiStage();
+      setIsCompacting(false);
+      if (sid) {
+        refreshContextUsage(sid);
+        scheduleEventStreamClose(sid);
+      }
+      if (notify && wasRunning) onAgentEnd?.();
+    }
+  }, [loadSession, onAgentEnd, refreshContextUsage, scheduleEventStreamClose, settleUiStage]);
 
   const waitForPromptSettlement = useCallback(async (sid: string, runId?: number) => {
     await delay(PROMPT_SETTLE_INITIAL_DELAY_MS);
@@ -1129,7 +1154,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         const data = await res.json() as { state?: AgentStateResponse };
         if (data.state?.isBashRunning) continue;
 
-        await loadSession(sid);
+        await loadSession(sid, false, false, true);
         if (bashRecoveryIdRef.current !== recoveryId || sessionIdRef.current !== sid) return;
         bashRunningRef.current = false;
         setBashRunning(false);
@@ -1194,7 +1219,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       const sid = sessionIdRef.current;
       if (!sid) return;
       if (agentRunningRef.current) void reconcileAgentState(sid);
-      else void loadSession(sid);
+      else void loadSession(sid, false, false, true);
     };
     const onVisible = () => {
       if (document.visibilityState === "visible") sync();
@@ -1295,14 +1320,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         if (!agentWasActive || rpcPromptPendingRef.current || !acceptsPromptGeneration(event)) break;
 
         const sid = sessionIdRef.current;
-        const wasRunning = settleUiStage();
-        setIsCompacting(false);
-        if (sid) {
-          void loadSession(sid);
-          refreshContextUsage(sid);
-          scheduleEventStreamClose(sid);
-        }
-        if (wasRunning) onAgentEnd?.();
+        void settleAfterPersistedReload(sid, promptRunIdRef.current, true);
         break;
       }
       case "prompt_done":
@@ -1316,16 +1334,11 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           if (!promptWasPending && !firstNotification) break;
 
           const sid = sessionIdRef.current;
-          if (sid) {
-            void loadSession(sid);
-            refreshContextUsage(sid);
-          }
           // An extension-injected agent may already have started before the
           // command's prompt_done. Keep that active stage visible and let its
           // agent_settled event perform the next completion transition.
           if (!sdkAgentActiveRef.current) {
-            settleUiStage();
-            if (sid) scheduleEventStreamClose(sid);
+            void settleAfterPersistedReload(sid, runId);
           }
         }
         break;
@@ -1503,7 +1516,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         handleExtensionUiRequest(event as ExtensionUiRequest);
         break;
     }
-  }, [addNotice, cancelEventStreamGrace, clearConversationPlanWidget, commitLiveAssistant, handleExtensionUiRequest, loadSession, notifyPromptStage, onAgentEnd, refreshContextUsage, replaceMessages, scheduleEventStreamClose, scrollToBottom, settleUiStage]);
+  }, [addNotice, cancelEventStreamGrace, clearConversationPlanWidget, commitLiveAssistant, handleExtensionUiRequest, loadSession, notifyPromptStage, onAgentEnd, refreshContextUsage, replaceMessages, scheduleEventStreamClose, scrollToBottom, settleAfterPersistedReload, settleUiStage]);
   handleAgentEventRef.current = handleAgentEvent;
 
   const handleSend = useCallback(async (message: string, images?: AttachedImage[]) => {
@@ -2237,11 +2250,12 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     sessionIdRef.current = sid;
     activeLeafIdRef.current = null;
     setActiveLeafId(null);
-    replaceMessages([]);
+    // Keep the previous session visible behind the loading veil. Clearing it
+    // turns a short fetch into a full-screen blank state on slow links.
     setEntryIds([]);
     setHistoryHasMore(false);
 
-    void loadSession(sid, true, !opts.readOnlyHistory).then((agentState) => {
+    void loadSession(sid, true, !opts.readOnlyHistory, true, true).then((agentState) => {
       if (sessionIdRef.current !== sid) return;
       if (agentState?.running) {
         loadTools(sid);
