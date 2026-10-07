@@ -12,6 +12,14 @@
 - [x] E2E: phiên mới gửi tin → pi 1.0.0 trả lời "OK" (file JSONL ghi đúng).
 - [x] Gộp `main` + push `tvhdc/pi-web` (ddd7515..32fe150).
 
+- [x] **Báo lỗi sau update: "Ẩn phần suy nghĩ và tool" không hoạt động** — nguyên nhân gốc:
+      commit `42ae6cf` (speed up session loading) hạ cửa sổ tin tải ban đầu 80→20; cửa sổ 20 tin
+      thường bắt đầu giữa lượt ⇒ không có mốc `user` ⇒ vòng gộp lượt không chạy (đã tái hiện:
+      state 39 tin = assistant/toolResult, 0 user, 0 dòng gộp). Sửa: coi tin process đầu cửa sổ
+      làm mốc ảo (`windowAnchorIdx`), live tail vẫn render thô khi đang chạy. Test mới + rebuild
+      + cài + verify trình duyệt: session ngắn ✓, session dài 80 tin ẩn vẫn gộp "worked in 01:28" ✓,
+      TẮT → 19 dòng "Processed" + thinking mở ✓. Push `e44c22b`.
+
 ## Việc còn lại (tách phiên khác)
 
 - [ ] **3 test fail có sẵn từ nhánh icekale** (không phải do update — đã kiểm trên base):
