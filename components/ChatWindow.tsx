@@ -19,6 +19,7 @@ import { GoalPanel } from "./GoalPanel";
 import { DialogShell } from "./DialogShell";
 import { filterGoalStatuses, filterGoalWidgets, resolveGoalPanelModel } from "@/lib/goal-panel";
 import { formatWorkedIn } from "@/lib/hide-activity-preference";
+import { getModelPreference, rememberAgentStyle } from "@/lib/model-preferences";
 import { useI18n } from "@/hooks/useI18n";
 import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
@@ -355,6 +356,23 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const quotePopoverRef = useRef<HTMLDivElement | null>(null);
   const quoteChatInputRef = useRef<ChatInputHandle | null>(null);
+  // Per-model memory for the new-session AGENTS.md style: picking a style
+  // stores it under the model it was picked for; switching the model in the
+  // composer restores that model's remembered style (lib/model-preferences).
+  const stylePrefModelKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isNew || !onAgentStyleChange || !displayModelValue) return;
+    const key = `${displayModelValue.provider}/${displayModelValue.modelId}`;
+    if (stylePrefModelKeyRef.current === key) return;
+    stylePrefModelKeyRef.current = key;
+    const remembered = getModelPreference(displayModelValue.provider, displayModelValue.modelId).agentStyle;
+    if (remembered !== undefined) onAgentStyleChange(remembered);
+  }, [isNew, onAgentStyleChange, displayModelValue]);
+
+  const handleAgentStyleChange = (style: string | null) => {
+    if (displayModelValue) rememberAgentStyle(displayModelValue.provider, displayModelValue.modelId, style);
+    onAgentStyleChange?.(style);
+  };
   const closeQuotedSelection = useCallback(() => {
     setQuotedSelection(null);
     setQuoteInputOpen(false);
@@ -820,7 +838,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       onThinkingLevelChange={session || isNew ? handleThinkingLevelChange : undefined}
       agentStyles={agentStyles}
       agentStyle={agentStyle}
-      onAgentStyleChange={isNew ? onAgentStyleChange : undefined}
+      onAgentStyleChange={isNew ? handleAgentStyleChange : undefined}
       availableThinkingLevels={availableThinkingLevels}
       thinkingLevelMap={currentThinkingLevelMap}
       retryInfo={retryInfo}

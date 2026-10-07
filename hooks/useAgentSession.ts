@@ -31,6 +31,7 @@ import {
   getLiveFollowAttached,
 } from "@/lib/chat-lazy-load";
 import { SESSION_INITIAL_MESSAGE_WINDOW, SESSION_MESSAGE_WINDOW, historyItemKey, mergeWindowedHistory } from "@/lib/session-window";
+import { getModelPreference, rememberThinkingLevel } from "@/lib/model-preferences";
 import { highestThinkingLevel } from "@/lib/thinking-level";
 
 function hasPersistableAssistantContent(message: AgentMessage | null | undefined): boolean {
@@ -184,6 +185,11 @@ function desiredThinkingLevel(
   levels: Record<string, string[]>,
   pins: Record<string, string>,
 ): ThinkingLevelOption {
+  // A level the user explicitly picked for THIS model wins over the config pin
+  // and the "highest supported" fallback — this is what stops the level from
+  // jumping around when the model changes (per-model memory, localStorage).
+  const remembered = getModelPreference(provider, modelId).thinkingLevel;
+  if (remembered) return remembered as ThinkingLevelOption;
   const pin = pins[`${provider}/${modelId}`];
   if (pin) return pin as ThinkingLevelOption;
   return highestThinkingLevel(levels[`${provider}:${modelId}`]);
@@ -2103,6 +2109,12 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     if (isNew && !sessionIdRef.current) {
       thinkingLevelOverrideRef.current = level === "auto" ? null : level;
     }
+    // Remember the explicit choice for the model it was made on so switching
+    // away and back (or reloading) restores this model's own level. "auto"
+    // clears the memory: the user wants the default behaviour again.
+    if (displayModel) {
+      rememberThinkingLevel(displayModel.provider, displayModel.modelId, level === "auto" ? undefined : level);
+    }
     if (level === "auto") return; // "auto" leaves pi's current setting untouched
     const sid = sessionIdRef.current ?? await ensuringNewSessionRef.current;
     if (!sid) return;
@@ -2112,7 +2124,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     } catch (e) {
       console.error("Failed to set thinking level:", e);
     }
-  }, [isNew]);
+  }, [displayModel, isNew]);
 
   const handleToolPresetChange = useCallback(async (preset: ToolPreset) => {
     const toolNames = getToolNamesForPreset(preset);
