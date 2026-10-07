@@ -1089,9 +1089,19 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
               };
 
               const rendered: ReactNode[] = [];
+              // The initial history window (SESSION_INITIAL_MESSAGE_WINDOW) can start in
+              // the middle of a turn, so it may contain no user/compaction anchor at all.
+              // Treat the first process message of such a window as an implicit anchor,
+              // otherwise the segment renders ungrouped and "Hide thinking and tools"
+              // has nothing to fold. Leading orphan tool results still render raw.
+              let windowAnchorIdx = -1;
+              if (messages.length > 0 && !isGroupAnchor(messages[0])) {
+                windowAnchorIdx = messages.findIndex((m) => m.role === "assistant" || m.role === "custom");
+              }
               for (let idx = 0; idx < messages.length;) {
                 const msg = messages[idx];
-                if (!isGroupAnchor(msg)) {
+                const isWindowStartSegment = idx === windowAnchorIdx;
+                if (!isGroupAnchor(msg) && !isWindowStartSegment) {
                   rendered.push(renderMessage(idx));
                   idx += 1;
                   continue;
@@ -1111,7 +1121,8 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                   continue;
                 }
 
-                const isLiveTail = (sessionBusy || streamState.isStreaming) && endIdx === messages.length && userIdx === lastAnchorIdx;
+                const isLiveTail = (sessionBusy || streamState.isStreaming) && endIdx === messages.length
+                  && (userIdx === lastAnchorIdx || isWindowStartSegment);
                 if (isLiveTail) {
                   for (let renderIdx = userIdx; renderIdx < endIdx; renderIdx++) {
                     rendered.push(renderMessage(renderIdx));
@@ -1120,7 +1131,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                   continue;
                 }
 
-                rendered.push(renderMessage(userIdx));
+                if (!isWindowStartSegment) rendered.push(renderMessage(userIdx));
 
                 const finalAssistant = messages[finalAssistantIdx] as AssistantMessage;
                 const finalSplit = splitFinalAssistantBlocks(finalAssistant);
@@ -1162,7 +1173,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 // reasoning stays outside the fold without reordering the turn.
                 // With "Hide thinking and tools" there is nothing to flush for:
                 // the thinking blocks join the same fold as the tool calls.
-                for (let processIdx = userIdx + 1; processIdx <= finalAssistantIdx; processIdx++) {
+                for (let processIdx = isWindowStartSegment ? userIdx : userIdx + 1; processIdx <= finalAssistantIdx; processIdx++) {
                   const processMessage = messages[processIdx];
                   const messageKey = entryIds[processIdx] ?? processIdx;
                   if (processMessage.role === "custom") {
@@ -1214,7 +1225,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                   // Gather the turn's assistant blocks and derive the file list
                   // from the write/edit calls among them.
                   const turnContent: AssistantContentBlock[] = [];
-                  for (let i = userIdx + 1; i <= finalAssistantIdx; i++) {
+                  for (let i = isWindowStartSegment ? userIdx : userIdx + 1; i <= finalAssistantIdx; i++) {
                     const m = messages[i];
                     if (m?.role === "assistant") {
                       for (const b of (m as AssistantMessage).content ?? []) turnContent.push(b);

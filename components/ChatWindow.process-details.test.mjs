@@ -57,3 +57,14 @@ test("hiding thinking and tools folds a finished turn behind one worked-in row",
   // The counts label survives for the default (switch off) path.
   assert.match(source, /workedIn\s*\?\s*\[t\("chat\.workedIn"/);
 });
+
+test("a history window starting mid-turn still folds (no user anchor in the initial window)", () => {
+  // SESSION_INITIAL_MESSAGE_WINDOW can open mid-turn; the first process message
+  // becomes an implicit anchor so the fold logic (and hideActivity) still runs.
+  assert.match(source, /windowAnchorIdx = messages\.findIndex/);
+  assert.match(source, /idx === windowAnchorIdx/);
+  // The live streaming tail must stay ungrouped while the turn is running.
+  assert.match(source, /userIdx === lastAnchorIdx \|\| isWindowStartSegment/);
+  // The implicit anchor itself is a process message: it joins the fold.
+  assert.match(source, /if \(!isWindowStartSegment\) rendered\.push\(renderMessage\(userIdx\)\)/);
+});
