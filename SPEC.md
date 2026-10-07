@@ -44,9 +44,11 @@ bản fork, rồi build + test + cài lại bản chạy thật.
 - **A** — merge agegr vào `main` hiện tại: giữ mọi thứ nhưng tự giải 140 file conflict (rủi ro cao).
 - **C** — giữ gốc, cherry-pick vài feat agegr lẻ: không "update" thật, MCP suite phụ thuộc infra lớn.
 
-## Tiêu chí "xong"
+## Tiêu chí "xong" — KẾT QUẢ 07/10/2026 (đủ cả 4)
 
-1. Nhánh `update-agegr` = agegr/main + 17 commit riêng, conflict = 0.
-2. `tsc --noEmit` + `npm test` + `npm run lint` pass.
-3. Build lại, cài global, cổng 8504 chạy bình thường, UI tiếng Việt + agent-styles còn nguyên.
-4. `main`/`origin/main` giữ nguyên tới bước 3 (rollback = rời nhánh là xong).
+1. ✅ Merge `upstream/main` (v0.15.0 + pi 1.0.0); `vi` dịch đủ 25 khoá MCP mới (en=vi=848).
+2. ✅ `tsc` / `npm test` (1300/1303 — 3 fail CÓ SẴN từ nhánh icekale, đã kiểm baseline) / `lint`.
+3. ✅ Build + cài global 0.15.0 + restart 8504: 200 toàn bộ, locale vi, e2e trả lời OK.
+4. ✅ Đã gộp `main` + push `tvhdc/pi-web`; rollback tarball: `~/Code/pi-web-0.15.0.tgz`.
+
+Phương án B (rebase lên agegr/Next.js) ĐÃ BỎ — xem mục Hiện trạng. Việc còn lại: xem TODO.md.
