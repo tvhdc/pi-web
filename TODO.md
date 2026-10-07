@@ -1,20 +1,16 @@
-# TODO — Ngôn ngữ tiếng Việt (`vi`)
+# TODO — Update theo agegr/pi-web
 
-- [x] 1. Dịch `lib/i18n/messages/vi.ts` (793 key, chia 5 phần theo mục của `en.ts`).
-- [x] 2. Đăng ký `vi`: `lib/i18n/types.ts`, `lib/i18n/registry.ts` (nhận `vi`, `vi-VN`),
-      `lib/ui-locale.ts`, `hooks/useI18n.tsx`, `app/api/ui-locale/route.ts`.
-- [x] 3. Cập nhật test đang khoá danh sách ngôn ngữ: `lib/i18n/registry.test.mjs`,
-      `lib/ui-locale.test.mjs`, `components/SettingsPage.test.mjs`, `components/GitChangesPanel.test.mjs`,
-      `lib/i18n/messages/remote-i18n.test.mjs`, `components/SubagentSessions.test.mjs`.
-- [x] 4. Đếm key: `vi` phải bằng `en` (script so khớp).
-- [x] 5. `npx tsc --noEmit` + `npm test` + `npm run lint`.
-- [x] 6. Kiểm chứng bằng trình duyệt: chọn Tiếng Việt, chụp sidebar/chat/Settings.
-- [x] 7. Ghi `docs/i18n.md`; cập nhật `PRODUCT.md` nếu cần.
-- [ ] 8. (đã build+cài; còn hẹn restart) Build gói + cài + hẹn restart ngoài lượt; commit + push.
-
-## Việc cũ (đã xong)
-
-- [x] Công tắc "ẩn thinking và tool" + `worked in MM:SS` (xem lịch sử git).
-- [x] Chuyển service 8504 sang bản fork, bucket hardlink, dọn sự cố "operation was aborted".
-- [x] Ô nhập prompt dãn nhiều dòng (`flexBasis: auto`); placeholder rút gọn thành `Messages…`.
-- [ ] (chưa làm) telemetry `PI_PERF_LOG` + metrics cho dashboard: bản fork không ghi.
+- [x] Điều tra: 3 remote, điểm chia 14/08, 366 commit agegr, 140 conflict khi merge, 6 file conflict khi cherry-pick.
+- [x] SPEC cập nhật (SPEC-vi.md/TODO-vi.md là bộ cũ task tiếng Việt).
+- [x] ⛔ TẠM DỪNG B — agegr = Next.js, nhánh mình = TanStack → người dùng chọn **B'**.
+- [x] Xem 6 commit icekale: kèm nâng `pi-*` lên **1.0.0** (lock 200 dòng), thêm route `api/mcp`,
+      bump v0.15.0; script `patch-pi-ai-image-limit` + postinstall là CỦA MÌNH (git giữ khi merge).
+- [ ] Nhánh `update-0.15` ← merge `upstream/main`; resolve conflict dự kiến: `src/routeTree.gen.ts`,
+      `lib/ui-locale.ts` + test.
+- [ ] `npm install` (pi 1.0.0) → `npx tsc --noEmit` → `npm test` → `npm run lint`.
+- [ ] `npm run build` (pack-tanstack).
+- [ ] Cherry-pick 17 commit riêng, resolve conflict (AppShell, ChatWindow, SettingsPage, i18n…).
+- [ ] Build + test: `npx tsc --noEmit`, `npm test`, `npm run lint`.
+- [ ] (Tùy chọn) cherry-pick commit hay của icekale 6 commit mới nhất (speed session load…).
+- [ ] Rebuild + cài global, kiểm tra cổng 8504 + UI vi + agent-styles.
+- [ ] Cập nhật TODO này sau mỗi bước.

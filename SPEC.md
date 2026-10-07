@@ -1,33 +1,52 @@
-# SPEC — Ngôn ngữ tiếng Việt (`vi`) cho fork @agegr/pi-web
+# SPEC — Update pi-web theo upstream `agegr/pi-web`
+
+## Hiện trạng (điều tra 07/10/2026 — CẬP NHẬT sau khi chuẩn bị làm B)
+
+- ⚠️ **PHÁT HIỆN DỪNG LẠI:** `agegr/main` vẫn là **Next.js** (`next.config.ts`, script
+  `next build --webpack`, dep `next@16.3.6`), trong khi nhánh của bạn (icekale) đã **chuyển sang
+  TanStack Start** (`vite.tanstack.config.ts`, `scripts/pack-tanstack.mjs`, `bin/pi-web.js`, không
+  `next.config.ts`). Hai nhánh khác **framework** hoàn toàn ⇒ "rebase lên agegr" = vứt TanStack +
+  pipeline build/deploy đang chạy. **Không làm B nữa trừ khi người dùng xác nhận.**
+- Cũng 07/10: base v0.14.7 của bạn = icekale v0.15.0-trừ-6-commit ⇒ **không phải bản cũ** theo nhánh
+  của mình; 6 commit mới nhất (speed session load, MCP settings route…) cherry-pick được ngay.
+- `agegr` = Next.js, pin `pi-* 1.0.0`; bạn = TanStack, `^0.99.1`.
+
+- Repo: `/home/huy/Code/pi-web-icekale` — `origin` = `tvhdc/pi-web` (fork của bạn),
+  `upstream` = `icekale/pi-web`, `agegr` = `agegr/pi-web`. Tree sạch, `main` = `origin/main`,
+  chưa tạo nhánh mới (checkout `update-agegr` bị hủy, không có gì thay đổi).
+- Bản đang chạy = build từ chính checkout này (`@agegr/pi-web@0.14.7`, global, cổng 8504),
+  chứa đủ 17 commit riêng của bạn (agent-styles, vi i18n, usage line…).
+- Điểm chia agegr ⇄ icekale: `77e482d` (14/08/2026, v0.8.8). Từ đó:
+  - `agegr/main`: **+366 commit** (v0.10.0, "upgrade pi 1.0.0", ~153k dòng mới) — README icekale
+    cũng ghi "This tree follows agegr/pi-web" ⇒ agegr là upstream thật.
+  - `icekale/main` (gốc của bạn): **+387 commit** riêng (v0.15.0), **0 commit trùng patch** với agegr.
+- Thử merge agegr vào main: **140 file conflict**. Thử cherry-pick 17 commit riêng lên gốc agegr:
+  conflict ở commit đầu (6 file: AppShell, ChatWindow, SettingsPage, en/zh i18n).
 
 ## Mục tiêu
 
-Thêm tiếng Việt vào bộ chọn ngôn ngữ của bản fork (`/home/huy/Code/pi-web-icekale`, gói
-`@agegr/pi-web`, phục vụ cổng 8504):
-
-- Có mục **Tiếng Việt** trong Settings → Ngôn ngữ; chọn xong toàn bộ giao diện hiện tiếng Việt.
-- Dịch **đủ 100%** số key của `lib/i18n/messages/en.ts` (khoảng 793 key) sang tiếng Việt.
+Đưa codebase về **gốc `agegr/main`** (upstream đang phát triển mạnh nhất), giữ nguyên các tweak riêng của
+bản fork, rồi build + test + cài lại bản chạy thật.
 
 ## Ràng buộc
 
-- **Tiếng Việt phổ thông**, câu ngắn như người Việt nói, không dịch máy từng chữ.
-- **Giữ nguyên từ khoá kỹ thuật**: `skills`, `token`, `model`, `agent`, `tool`, `API key`,
-  `prompt` (khi là khái niệm), `commit`, `log`, `build`, `JSON`, tên sản phẩm/đường dẫn/lệnh.
-  Dịch các từ đời thường: session/chat/conversation → "cuộc trò chuyện", project → "dự án",
-  settings → "cài đặt", files → "tệp", workspace → "không gian làm việc", thinking → "suy nghĩ".
-- Bám theo bảng thuật ngữ sẵn có ở bản custom cũ
-  (`.../pi-web-custom/src/client/src/viTranslations.ts`, ~1060 mục người dùng đã duyệt).
-- Thêm ngôn ngữ phải chạm đủ các chỗ: `lib/i18n/types.ts`, `registry.ts` (đăng ký + nhận diện
-  `vi`/`vi-VN`), `lib/ui-locale.ts`, `hooks/useI18n.tsx`, `app/api/ui-locale/route.ts`,
-  và các test đang khoá danh sách ngôn ngữ.
-- Không đụng dữ liệu phiên, không đổi hành vi khác. Bản build xong phải restart service — restart
-  hẹn **ngoài lượt chat** (bài học 01/10: restart trong lượt tự giết lượt).
+- **KHÔNG** đụng `main` / `origin/main` cho tới khi build+testpass trên nhánh mới.
+- Giữ đủ 17 commit riêng (agent-styles, vi i18n 100%, usage line, placeholder, composer…).
+- Build phải pass: `npx tsc --noEmit`, `npm test`, `npm run lint`.
+- Cài lại global phải xong mà server 8504 chạy lại được với dữ liệu cũ (không đổi cách tìm session).
+
+## Phương án (chọn 1)
+
+- **B (khuyến nghị)** — nhánh mới `update-agegr` từ `agegr/main`, cherry-pick 17 commit riêng,
+  resolve conflict từng dòng, build/test, rồi mới cân nhắc gộp vào `main`.
+  Mất: code riêng của nhánh icekale mà agegr không có (6 commit mới nhất + v0.9→v0.15 extras) —
+  agegr có tương đương hầu hết tính năng đã kiểm (subagents, queue, worktrees, minimap).
+- **A** — merge agegr vào `main` hiện tại: giữ mọi thứ nhưng tự giải 140 file conflict (rủi ro cao).
+- **C** — giữ gốc, cherry-pick vài feat agegr lẻ: không "update" thật, MCP suite phụ thuộc infra lớn.
 
 ## Tiêu chí "xong"
 
-1. `vi.ts` đủ số key bằng `en.ts` (kiểm bằng script đếm, 0 key thiếu/thừa).
-2. `npx tsc --noEmit` sạch; `npm test` xanh (trừ các test hỏng có sẵn từ trước).
-3. Chọn **Tiếng Việt** trong UI thật: chụp ảnh sidebar + khung chat + Settings, đều là tiếng Việt,
-   không còn câu tiếng Anh nào lọt (trừ từ khoá cố ý giữ).
-4. Build lại gói, cài, service 8504 phục vụ bản mới (kiểm bằng asset + ảnh chụp).
-5. Commit + push lên fork `tvhdc/pi-web`.
+1. Nhánh `update-agegr` = agegr/main + 17 commit riêng, conflict = 0.
+2. `tsc --noEmit` + `npm test` + `npm run lint` pass.
+3. Build lại, cài global, cổng 8504 chạy bình thường, UI tiếng Việt + agent-styles còn nguyên.
+4. `main`/`origin/main` giữ nguyên tới bước 3 (rollback = rời nhánh là xong).
